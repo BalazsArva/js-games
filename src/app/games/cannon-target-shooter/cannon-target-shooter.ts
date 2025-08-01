@@ -1,9 +1,9 @@
 import { Component, ElementRef, viewChild, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-const ballRadiusInMeter = 1 / 6;
+const ballRadiusInMeter = 1;//1 / 6;
 const defaultPixelsPerMeter = 50;
-const gravityAccelerationInMetersPerSecond = 9.81;
+const gravityAcceleration = 9.81;
 
 function convertLengthInMetersToPixels(lengthInMeters: number, zoomFactor: number) {
   return lengthInMeters * defaultPixelsPerMeter * zoomFactor;
@@ -11,6 +11,19 @@ function convertLengthInMetersToPixels(lengthInMeters: number, zoomFactor: numbe
 
 function getBallRadiusInPixels(zoomFactor: number) {
   return convertLengthInMetersToPixels(ballRadiusInMeter, zoomFactor);
+}
+
+interface Vector {
+  x: number;
+  y: number;
+}
+
+function addVectors(a: Vector, b: Vector) {
+  return { x: a.x + b.x, y: a.y + b.y };
+}
+
+function multiplyVectorByScalar(a: Vector, s: number) {
+  return { x: a.x * s, y: a.y * s };
 }
 
 @Component({
@@ -26,8 +39,7 @@ export class CannonTargetShooter {
   cannonBallCanvas = viewChild<ElementRef<HTMLCanvasElement>>('cannonBallCanvas');
   zoomFactor = signal<number>(1);
 
-  ballPositionInMetersHeight = 1500;
-  ballPositionInMetersWidth = 1;
+  ballPositionInMeters: Vector = { x: 1, y: 30 };
 
   ngAfterViewInit() {
     this.paintCannonBall();
@@ -35,43 +47,52 @@ export class CannonTargetShooter {
 
   dropCannonBall() {
     let previousTimestamp = performance.now(); // measured in milliseconds
-    let currentVelocity = 0;
 
-    this.animateCannonBall(previousTimestamp, currentVelocity);
+    this.animateCannonBall(previousTimestamp, { x: 0, y: 0 });
   }
 
   shootCannonBall() {
-    
+    let previousTimestamp = performance.now(); // measured in milliseconds
+
+    this.animateCannonBall(previousTimestamp, { x: 5, y: 100 });
   }
 
   resetBallPosition() {
-    this.ballPositionInMetersHeight = 250;
+    this.ballPositionInMeters = { x: 1, y: 30 };
     this.paintCannonBall();
   }
 
-  animateCannonBall(previousTimestamp: number, currentVelocity: number) {
+  animateCannonBall(previousTimestamp: number, currentMovementVector: Vector) {
     const now = performance.now();
     const elapsedSeconds = (now - previousTimestamp) / 1000;
-    const velocityDelta = elapsedSeconds * gravityAccelerationInMetersPerSecond;
-    currentVelocity += velocityDelta;
 
-    this.ballPositionInMetersHeight -= (currentVelocity * elapsedSeconds);
+    const gravityAccelerationOverElapsedTime: Vector = { x: 0, y: -(elapsedSeconds * gravityAcceleration) };
 
-    if (this.ballPositionInMetersHeight < 0) {
-      this.ballPositionInMetersHeight = 0;
-      this.paintCannonBall();
-    } else {
-      this.paintCannonBall();
+    const newMovementVector = addVectors(currentMovementVector, gravityAccelerationOverElapsedTime);
 
+    console.log({ elapsedSeconds, newMovementVector })
+
+    const newPositionVector = addVectors(
+      this.ballPositionInMeters,
+      multiplyVectorByScalar(newMovementVector, elapsedSeconds));
+
+    this.ballPositionInMeters = newPositionVector;
+    if (newPositionVector.y < 0) {
+      newPositionVector.y = 0;
+    }
+
+    this.paintCannonBall();
+
+    if (newPositionVector.y > 0) {
       requestAnimationFrame(() => {
-        this.animateCannonBall(now, currentVelocity);
+        this.animateCannonBall(now, newMovementVector);
       });
     }
   }
 
   computeBallPositionInPixels() {
-    const heightInPixels = convertLengthInMetersToPixels(this.ballPositionInMetersHeight, this.zoomFactor());
-    const x = convertLengthInMetersToPixels(this.ballPositionInMetersWidth, this.zoomFactor());
+    const heightInPixels = convertLengthInMetersToPixels(this.ballPositionInMeters.y, this.zoomFactor());
+    const x = convertLengthInMetersToPixels(this.ballPositionInMeters.x, this.zoomFactor());
 
     // 'ground level' is canvas.height 
     return { x: x, y: this.canvasHeight - heightInPixels };
