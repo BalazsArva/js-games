@@ -92,7 +92,7 @@ export class CannonTargetShooter {
       newPositionVector.y = 0;
     }
 
-    this.paintCannonBall();
+    this.paintCannonBall(newMovementVector);
 
     if (newPositionVector.y > 0) {
       requestAnimationFrame(() => {
@@ -109,7 +109,7 @@ export class CannonTargetShooter {
     return { x: x, y: this.canvasHeight - heightInPixels };
   }
 
-  paintCannonBall() {
+  paintCannonBall(movementVector?: Vector) {
     const ctx = this.cannonBallCanvas()?.nativeElement?.getContext('2d');
     if (!ctx) {
       console.error('No context found for cannonball drawing');
@@ -121,9 +121,22 @@ export class CannonTargetShooter {
 
     ctx.reset();
     ctx.fillStyle = '#333';
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#ff0000';
 
-    ctx.moveTo(100, 100);
-    ctx.ellipse(ballPosition.x, ballPosition.y, ballRadius, ballRadius, 0, 0, 360);
+    const x = ballPosition.x, y = ballPosition.y;
+    if (movementVector) {
+      console.log(movementVector)
+      const vectorMagnifier = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(vectorMagnifier * (x + movementVector.x), vectorMagnifier * (y - movementVector.y));
+      //ctx.lineTo(x + 10, y + 10);
+      ctx.stroke();
+      ctx.closePath();
+    }
+
+    ctx.ellipse(x, y, ballRadius, ballRadius, 0, 0, 360);
     ctx.fill();
   }
 }
