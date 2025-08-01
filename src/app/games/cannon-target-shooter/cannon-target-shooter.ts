@@ -1,4 +1,4 @@
-import { Component, ElementRef, viewChild, signal } from '@angular/core';
+import { Component, ElementRef, viewChild, signal, model } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 const ballRadiusInMeter = 1;//1 / 6;
@@ -37,7 +37,11 @@ export class CannonTargetShooter {
   canvasHeight = 800;
 
   cannonBallCanvas = viewChild<ElementRef<HTMLCanvasElement>>('cannonBallCanvas');
-  zoomFactor = signal<number>(1);
+  zoomFactor = model<number>(1);
+  zoomFactorMin = signal<number>(.1);
+  zoomFactorMax = signal<number>(2);
+  zoomFactorStep = signal<number>(.1);
+
   launchPower = signal<number>(10);
   launchAngle = signal<number>(45);
 
@@ -45,6 +49,36 @@ export class CannonTargetShooter {
 
   ngAfterViewInit() {
     this.paintCannonBall();
+
+    this.zoomFactor.subscribe(() => {
+      this.paintCannonBall();
+    })
+  }
+
+  onMouseWheel(e: WheelEvent) {
+    console.log('asdasdasd')
+    if (e.deltaY > 0) {
+      // scroll down, zoom out
+      this.zoomFactor.update(curr => {
+        const newVal = curr - this.zoomFactorStep();
+        if (newVal > this.zoomFactorMin()) {
+          return newVal;
+        }
+        return this.zoomFactorMin();
+      });
+    } else if (e.deltaY < 0) {
+      // scroll up, zoom in
+      this.zoomFactor.update(curr => {
+        const newVal = curr + this.zoomFactorStep();
+        if (newVal < this.zoomFactorMax()) {
+          return newVal;
+        }
+        return this.zoomFactorMax();
+      });
+    }
+
+    e.preventDefault();
+    return false;
   }
 
   dropCannonBall() {
@@ -61,10 +95,6 @@ export class CannonTargetShooter {
     const vX = Math.cos(angleRad) * this.launchPower();
     const vY = Math.sin(angleRad) * this.launchPower();
 
-    const initialMovementVector = { x: vX, y: vY };
-
-    console.log({ angleRad, initialMovementVector });
-
     this.animateCannonBall(previousTimestamp, { x: vX, y: vY });
   }
 
@@ -78,10 +108,7 @@ export class CannonTargetShooter {
     const elapsedSeconds = (now - previousTimestamp) / 1000;
 
     const gravityAccelerationOverElapsedTime: Vector = { x: 0, y: -(elapsedSeconds * gravityAcceleration) };
-
     const newMovementVector = addVectors(currentMovementVector, gravityAccelerationOverElapsedTime);
-
-    console.log({ elapsedSeconds, newMovementVector })
 
     const newPositionVector = addVectors(
       this.ballPositionInMeters,
@@ -116,27 +143,24 @@ export class CannonTargetShooter {
       return;
     }
 
-    const ballRadius = getBallRadiusInPixels(this.zoomFactor());
-    const ballPosition = this.computeBallPositionInPixels();
-
     ctx.reset();
     ctx.fillStyle = '#333';
     ctx.lineWidth = 1;
     ctx.strokeStyle = '#ff0000';
 
-    const x = ballPosition.x, y = ballPosition.y;
-    if (movementVector) {
-      console.log(movementVector)
-      const vectorMagnifier = 1;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(vectorMagnifier * (x + movementVector.x), vectorMagnifier * (y - movementVector.y));
-      //ctx.lineTo(x + 10, y + 10);
-      ctx.stroke();
-      ctx.closePath();
-    }
+    const ballRadius = getBallRadiusInPixels(this.zoomFactor());
+    const { x, y } = this.computeBallPositionInPixels();
 
     ctx.ellipse(x, y, ballRadius, ballRadius, 0, 0, 360);
     ctx.fill();
+
+    if (movementVector) {
+      const vectorMagnifier = 10 * this.zoomFactor();
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + (vectorMagnifier * movementVector.x), y - (vectorMagnifier * movementVector.y));
+      ctx.stroke();
+      ctx.closePath();
+    }
   }
 }
