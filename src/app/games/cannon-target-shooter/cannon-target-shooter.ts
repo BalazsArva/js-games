@@ -38,6 +38,8 @@ export class CannonTargetShooter {
 
   cannonBallCanvas = viewChild<ElementRef<HTMLCanvasElement>>('cannonBallCanvas');
   zoomFactor = signal<number>(1);
+  launchPower = signal<number>(10);
+  launchAngle = signal<number>(45);
 
   ballPositionInMeters: Vector = { x: 1, y: 30 };
 
@@ -54,7 +56,16 @@ export class CannonTargetShooter {
   shootCannonBall() {
     let previousTimestamp = performance.now(); // measured in milliseconds
 
-    this.animateCannonBall(previousTimestamp, { x: 5, y: 100 });
+    const angleRad = (this.launchAngle() * Math.PI) / 180;
+
+    const vX = Math.cos(angleRad) * this.launchPower();
+    const vY = Math.sin(angleRad) * this.launchPower();
+
+    const initialMovementVector = { x: vX, y: vY };
+
+    console.log({ angleRad, initialMovementVector });
+
+    this.animateCannonBall(previousTimestamp, { x: vX, y: vY });
   }
 
   resetBallPosition() {
