@@ -2,7 +2,8 @@
 
 <div>
     <div>
-        <canvas #cannonBallCanvas (wheel)="onMouseWheel($event)" (mousemove)="onMouseMove($event)" [width]="canvasWidth" [height]="canvasHeight"></canvas>
+        <canvas style="background:#999;" #cannonBallCanvas (wheel)="onMouseWheel($event)"
+            (mousemove)="onMouseMove($event)" [width]="canvasWidth" [height]="canvasHeight"></canvas>
     </div>
 </div>
 
@@ -40,6 +41,5 @@
     <div class="input-group mb-3">
         <button type="button" class="btn btn-primary" (click)="dropCannonBall()">Drop the ball</button>
         <button type="button" class="btn btn-primary" (click)="shootCannonBall()">Shoot the ball</button>
-        <button type="button" class="btn btn-light" (click)="resetBallPosition()">Reset</button>
     </div>
 </div>

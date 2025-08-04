@@ -9,10 +9,6 @@ function convertLengthInMetersToPixels(lengthInMeters: number, zoomFactor: numbe
   return lengthInMeters * defaultPixelsPerMeter * zoomFactor;
 }
 
-function getBallRadiusInPixels(zoomFactor: number) {
-  return convertLengthInMetersToPixels(ballRadiusInMeter, zoomFactor);
-}
-
 interface Vector {
   x: number;
   y: number;
@@ -26,6 +22,75 @@ function multiplyVectorByScalar(a: Vector, s: number) {
   return { x: a.x * s, y: a.y * s };
 }
 
+class Game {
+  private cannonBalls: CannonBall[] = [];
+
+  constructor(public mapWidthMeters: number, public mapHeightMeters: number) {
+  }
+
+  updateState(elapsedSeconds: number) {
+    if (!this.cannonBalls.length) {
+      return;
+    }
+
+    const gravityAccelerationOverElapsedTime: Vector = { x: 0, y: -(elapsedSeconds * gravityAcceleration) };
+
+    for (let i = this.cannonBalls.length - 1; i >= 0; --i) {
+      const cannonBall = this.cannonBalls[i];
+      if (!cannonBall.movementVector) {
+        continue;
+      }
+
+      const newMovementVector = addVectors(cannonBall.movementVector, gravityAccelerationOverElapsedTime);
+      const newPositionVector = addVectors(
+        cannonBall.position,
+        multiplyVectorByScalar(newMovementVector, elapsedSeconds));
+
+      cannonBall.movementVector = newMovementVector;
+      cannonBall.position = newPositionVector;
+
+      // Ball went off the map - delete it
+      if (newPositionVector.x < (- 2 * cannonBall.radius) ||
+        newPositionVector.x > (this.mapWidthMeters + 2 * cannonBall.radius) ||
+        newPositionVector.y < (-2 * cannonBall.radius) ||
+        newPositionVector.y > (this.mapHeightMeters + 2 * cannonBall.radius)) {
+        this.cannonBalls.splice(i, 1);
+      }
+    }
+  }
+
+  getViewportElements(viewport: Viewport) {
+    // TODO: Improve fitlering - it only returns elements whose center are in the VP, but clipping will occur
+    return {
+      cannonBalls: this.cannonBalls.filter(cb =>
+      (cb.position.x >= viewport.x && cb.position.x <= (viewport.x + viewport.width) &&
+        (cb.position.y >= viewport.y && cb.position.y <= (viewport.y + viewport.height)))),
+    };
+  }
+
+  spawnNewCannonBall(position: Vector, movement: Vector) {
+    // TODO: Radius and weight as input  or configurable
+    this.cannonBalls.push(new CannonBall(position, ballRadiusInMeter, 0, movement));
+  }
+}
+
+// x,y,radius,movementVector expressed in meters
+class CannonBall {
+  constructor(
+    public position: Vector,
+    public radius: number,
+    public weight: number,
+    public movementVector: Vector) {
+  }
+}
+
+interface Viewport {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 @Component({
   selector: 'app-cannon-target-shooter',
   imports: [FormsModule],
@@ -33,10 +98,13 @@ function multiplyVectorByScalar(a: Vector, s: number) {
   styleUrl: './cannon-target-shooter.scss'
 })
 export class CannonTargetShooter {
+
   canvasWidth = 1200;
   canvasHeight = 800;
 
   cannonBallCanvas = viewChild<ElementRef<HTMLCanvasElement>>('cannonBallCanvas');
+
+  game = new Game(1500, 300);
 
   zoomFactor = model<number>(1);
   zoomFactorMin = signal<number>(.1);
@@ -48,34 +116,46 @@ export class CannonTargetShooter {
   launchPower = signal<number>(10);
   launchAngle = signal<number>(45);
 
-  ballPositionInMeters: Vector = { x: 1, y: 10 };
 
-  mapSize = { widthInMeters: 300, heightInMeters: 100 };
-  viewport = computed(() => {
-    const zoomAdjustedMapWidthInPixels = convertLengthInMetersToPixels(this.mapSize.widthInMeters, this.zoomFactor());
-    const zoomAdjustedMapHeightInPixels = convertLengthInMetersToPixels(this.mapSize.heightInMeters, this.zoomFactor());
+  viewport = computed<Viewport>(() => {
+    const mapSize = { widthInMeters: this.game.mapWidthMeters, heightInMeters: this.game.mapHeightMeters };
 
-    const viewportWidthInMeters = this.mapSize.widthInMeters / (zoomAdjustedMapWidthInPixels / this.canvasWidth);
-    const viewportHeightInMeters = this.mapSize.heightInMeters / (zoomAdjustedMapHeightInPixels / this.canvasHeight);
+    const zoomAdjustedMapWidthInPixels = convertLengthInMetersToPixels(mapSize.widthInMeters, this.zoomFactor());
+    const zoomAdjustedMapHeightInPixels = convertLengthInMetersToPixels(mapSize.heightInMeters, this.zoomFactor());
+
+    const viewportWidthInMeters = this.game.mapWidthMeters / (zoomAdjustedMapWidthInPixels / this.canvasWidth);
+    const viewportHeightInMeters = this.game.mapHeightMeters / (zoomAdjustedMapHeightInPixels / this.canvasHeight);
 
     // bounding box measured in meters
     // TODO: Imolement moving of viewport
     return {
-      xMeters: 0,
-      yMeters: 0,
-      widthMeters: viewportWidthInMeters,
-      heightMeters: viewportHeightInMeters,
+      x: 0,
+      y: 0,
+      width: viewportWidthInMeters,
+      height: viewportHeightInMeters,
     };
   })
 
   ngAfterViewInit() {
-    this.paintCannonBall();
-    this.paintMinimap();
+    this.doGameLoop(0);
 
+    /*
     this.zoomFactor.subscribe(() => {
       this.paintCannonBall();
       this.paintMinimap();
     })
+    */
+  }
+
+  doGameLoop(previousTimestamp: number) {
+    requestAnimationFrame(() => {
+      const now = performance.now();
+      const elapsedMillis = now - previousTimestamp;
+      this.game.updateState(elapsedMillis / 1000);
+      this.animateCannonBall();
+
+      this.doGameLoop(now);
+    });
   }
 
   onMouseMove(e: MouseEvent) {
@@ -86,8 +166,8 @@ export class CannonTargetShooter {
       const xDistancePercentageRelativeToCanvas = e.offsetX / this.canvasWidth;
       const yDistancePercentageRelativeToCanvas = e.offsetY / this.canvasHeight;
 
-      const movementInMetersX = viewport.widthMeters * (e.movementX / this.canvasWidth);
-      const movementInMetersY = viewport.heightMeters * (e.movementY / this.canvasHeight);
+      const movementInMetersX = viewport.width * (e.movementX / this.canvasWidth);
+      const movementInMetersY = viewport.height * (e.movementY / this.canvasHeight);
 
       this.viewportCenterInMeters.update(curr => { return { x: curr.x + movementInMetersX, y: curr.y + movementInMetersY }; });
 
@@ -124,62 +204,18 @@ export class CannonTargetShooter {
   }
 
   dropCannonBall() {
-    let previousTimestamp = performance.now(); // measured in milliseconds
-
-    this.animateCannonBall(previousTimestamp, { x: 0, y: 0 });
+    this.game.spawnNewCannonBall({ x: 1, y: 100 }, { x: 0, y: 0 });
   }
 
   shootCannonBall() {
-    let previousTimestamp = performance.now(); // measured in milliseconds
-
     const angleRad = (this.launchAngle() * Math.PI) / 180;
-
     const vX = Math.cos(angleRad) * this.launchPower();
     const vY = Math.sin(angleRad) * this.launchPower();
 
-    this.animateCannonBall(previousTimestamp, { x: vX, y: vY });
+    this.game.spawnNewCannonBall({ x: 1, y: 100 }, { x: vX, y: vY });
   }
 
-  resetBallPosition() {
-    this.ballPositionInMeters = { x: 1, y: 30 };
-    this.paintCannonBall();
-  }
-
-  animateCannonBall(previousTimestamp: number, currentMovementVector: Vector) {
-    const now = performance.now();
-    const elapsedSeconds = (now - previousTimestamp) / 1000;
-
-    const gravityAccelerationOverElapsedTime: Vector = { x: 0, y: -(elapsedSeconds * gravityAcceleration) };
-    const newMovementVector = addVectors(currentMovementVector, gravityAccelerationOverElapsedTime);
-
-    const newPositionVector = addVectors(
-      this.ballPositionInMeters,
-      multiplyVectorByScalar(newMovementVector, elapsedSeconds));
-
-    this.ballPositionInMeters = newPositionVector;
-    if (newPositionVector.y < 0) {
-      newPositionVector.y = 0;
-    }
-
-    this.paintCannonBall(newMovementVector);
-    this.paintMinimap();
-
-    if (newPositionVector.y > 0) {
-      requestAnimationFrame(() => {
-        this.animateCannonBall(now, newMovementVector);
-      });
-    }
-  }
-
-  computeBallPositionInPixels() {
-    const heightInPixels = convertLengthInMetersToPixels(this.ballPositionInMeters.y, this.zoomFactor());
-    const x = convertLengthInMetersToPixels(this.ballPositionInMeters.x, this.zoomFactor());
-
-    // 'ground level' is canvas.height 
-    return { x: x, y: this.canvasHeight - heightInPixels };
-  }
-
-  paintCannonBall(movementVector?: Vector) {
+  animateCannonBall() {
     const ctx = this.cannonBallCanvas()?.nativeElement?.getContext('2d');
     if (!ctx) {
       console.error('No context found for drawing');
@@ -187,23 +223,45 @@ export class CannonTargetShooter {
     }
 
     ctx.reset();
-    ctx.fillStyle = '#333';
+
+    const viewport = this.viewport();
+    const viewportElements = this.game.getViewportElements(viewport);
+
+    for (let i = 0; i < viewportElements.cannonBalls.length; ++i) {
+      const cannonBall = viewportElements.cannonBalls[i];
+
+      this.paintCannonBall(cannonBall, viewport, ctx);
+    }
+
+    this.paintMinimap();
+  }
+
+  paintCannonBall(cannonBall: CannonBall, viewport: Viewport, ctx: CanvasRenderingContext2D) {
+    const zoomFactor = this.zoomFactor();
+    const ballRadius = convertLengthInMetersToPixels(cannonBall.radius, zoomFactor);
+    const xRelativeToViewport = cannonBall.position.x - viewport.x;
+    const yRelativeToViewport = cannonBall.position.y - viewport.y;
+
+    const canvasX = convertLengthInMetersToPixels(xRelativeToViewport, zoomFactor);
+    const canvasY = this.canvasHeight - convertLengthInMetersToPixels(yRelativeToViewport, zoomFactor);
+
+    ctx.fillStyle = '#333333';
     ctx.lineWidth = 1;
     ctx.strokeStyle = '#ff0000';
 
-    const ballRadius = getBallRadiusInPixels(this.zoomFactor());
-    const { x, y } = this.computeBallPositionInPixels();
+    const cbPath = new Path2D();
+    cbPath.ellipse(canvasX, canvasY, ballRadius, ballRadius, 0, 0, 360);
+    ctx.fill(cbPath);
 
-    ctx.ellipse(x, y, ballRadius, ballRadius, 0, 0, 360);
-    ctx.fill();
-
-    if (movementVector) {
+    // TODO: Take this setting from a flag
+    if (cannonBall.movementVector) {
+      const vecPath = new Path2D();
       const vectorMagnifier = 10 * this.zoomFactor();
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(x + (vectorMagnifier * movementVector.x), y - (vectorMagnifier * movementVector.y));
-      ctx.stroke();
-      ctx.closePath();
+
+      vecPath.moveTo(canvasX, canvasY);
+      vecPath.lineTo(canvasX + (vectorMagnifier * cannonBall.movementVector.x), canvasY - (vectorMagnifier * cannonBall.movementVector.y));
+
+      ctx.stroke(vecPath);
     }
   }
 
@@ -221,13 +279,13 @@ export class CannonTargetShooter {
     ctx.strokeStyle = '#000000';
 
     const margin = 20;
-    const mapWidthToHeightRatio = this.mapSize.widthInMeters / this.mapSize.heightInMeters;
+    const mapWidthToHeightRatio = this.game.mapWidthMeters / this.game.mapHeightMeters;
     const minimapWidth = this.canvasWidth / 5;
     const minimapHeight = minimapWidth / mapWidthToHeightRatio;
 
     const viewport = this.viewport();
-    const visibleWidthPercentage = viewport.widthMeters / this.mapSize.widthInMeters;
-    const visibleHeightPercentage = viewport.heightMeters / this.mapSize.heightInMeters;
+    const visibleWidthPercentage = viewport.width / this.game.mapWidthMeters;
+    const visibleHeightPercentage = viewport.height / this.game.mapHeightMeters;
 
     const minimapViewportWidth = minimapWidth * visibleWidthPercentage;
     const minimapViewportHeight = minimapHeight * visibleHeightPercentage;
