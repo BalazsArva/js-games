@@ -1,4 +1,4 @@
-import { Component, ElementRef, viewChild, signal, model } from '@angular/core';
+import { Component, ElementRef, viewChild, signal, model, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 const ballRadiusInMeter = 1;//1 / 6;
@@ -45,18 +45,37 @@ export class CannonTargetShooter {
   launchPower = signal<number>(10);
   launchAngle = signal<number>(45);
 
-  ballPositionInMeters: Vector = { x: 1, y: 30 };
+  ballPositionInMeters: Vector = { x: 1, y: 10 };
+
+  mapSize = { widthInMeters: 300, heightInMeters: 100 };
+  getViewport = computed(() => {
+    const zoomAdjustedMapWidthInPixels = convertLengthInMetersToPixels(this.mapSize.widthInMeters, this.zoomFactor());
+    const zoomAdjustedMapHeightInPixels = convertLengthInMetersToPixels(this.mapSize.heightInMeters, this.zoomFactor());
+
+    const viewportWidthInMeters = this.mapSize.widthInMeters / (zoomAdjustedMapWidthInPixels / this.canvasWidth);
+    const viewportHeightInMeters = this.mapSize.heightInMeters / (zoomAdjustedMapHeightInPixels / this.canvasHeight);
+
+    // bounding box measured in meters
+    // TODO: Imolement moving of viewport
+    return {
+      xMeters: 0,
+      yMeters: 0,
+      widthMeters: viewportWidthInMeters,
+      heightMeters: viewportHeightInMeters,
+    };
+  })
 
   ngAfterViewInit() {
     this.paintCannonBall();
+    this.paintMinimap();
 
     this.zoomFactor.subscribe(() => {
       this.paintCannonBall();
+      this.paintMinimap();
     })
   }
 
   onMouseWheel(e: WheelEvent) {
-    console.log('asdasdasd')
     if (e.deltaY > 0) {
       // scroll down, zoom out
       this.zoomFactor.update(curr => {
@@ -120,6 +139,7 @@ export class CannonTargetShooter {
     }
 
     this.paintCannonBall(newMovementVector);
+    this.paintMinimap();
 
     if (newPositionVector.y > 0) {
       requestAnimationFrame(() => {
@@ -139,7 +159,7 @@ export class CannonTargetShooter {
   paintCannonBall(movementVector?: Vector) {
     const ctx = this.cannonBallCanvas()?.nativeElement?.getContext('2d');
     if (!ctx) {
-      console.error('No context found for cannonball drawing');
+      console.error('No context found for drawing');
       return;
     }
 
@@ -162,5 +182,47 @@ export class CannonTargetShooter {
       ctx.stroke();
       ctx.closePath();
     }
+  }
+
+  paintMinimap() {
+    const ctx = this.cannonBallCanvas()?.nativeElement?.getContext('2d');
+    if (!ctx) {
+      console.error('No context found for drawing');
+      return;
+    }
+
+    // TODO: Change this once moving of viewport is implemented
+
+    ctx.fillStyle = '#333';
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#000000';
+
+    const margin = 20;
+    const mapWidthToHeightRatio = this.mapSize.widthInMeters / this.mapSize.heightInMeters;
+    const minimapWidth = this.canvasWidth / 5;
+    const minimapHeight = minimapWidth / mapWidthToHeightRatio;
+
+    const viewport = this.getViewport();
+    const visibleWidthPercentage = viewport.widthMeters / this.mapSize.widthInMeters;
+    const visibleHeightPercentage = viewport.heightMeters / this.mapSize.heightInMeters;
+
+    const minimapViewportWidth = minimapWidth * visibleWidthPercentage;
+    const minimapViewportHeight = minimapHeight * visibleHeightPercentage;
+
+    ctx.rect(
+      this.canvasWidth - minimapWidth - margin,
+      margin,
+      minimapWidth,
+      minimapHeight);
+
+    ctx.stroke();
+
+    ctx.rect(
+      this.canvasWidth - minimapWidth - margin,
+      margin,
+      minimapViewportWidth,
+      minimapViewportHeight);
+
+    ctx.stroke();
   }
 }
