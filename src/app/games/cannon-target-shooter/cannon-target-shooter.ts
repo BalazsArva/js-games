@@ -1,94 +1,13 @@
 import { Component, ElementRef, viewChild, signal, model, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Game, CannonBall } from './game';
+import { IronDensity, Viewport } from './types';
 
-const ballRadiusInMeter = 1;//1 / 10;
 const defaultPixelsPerMeter = 50;
-const gravityAcceleration = 9.81;
+const ballRadiusInMeter = 1;//1 / 10;
 
 function convertLengthInMetersToPixels(lengthInMeters: number, zoomFactor: number) {
   return lengthInMeters * defaultPixelsPerMeter * zoomFactor;
-}
-
-interface Vector {
-  x: number;
-  y: number;
-}
-
-function addVectors(a: Vector, b: Vector) {
-  return { x: a.x + b.x, y: a.y + b.y };
-}
-
-function multiplyVectorByScalar(a: Vector, s: number) {
-  return { x: a.x * s, y: a.y * s };
-}
-
-class Game {
-  private cannonBalls: CannonBall[] = [];
-
-  constructor(public mapWidthMeters: number, public mapHeightMeters: number) {
-  }
-
-  updateState(elapsedSeconds: number) {
-    if (!this.cannonBalls.length) {
-      return;
-    }
-
-    const gravityAccelerationOverElapsedTime: Vector = { x: 0, y: -(elapsedSeconds * gravityAcceleration) };
-
-    for (let i = this.cannonBalls.length - 1; i >= 0; --i) {
-      const cannonBall = this.cannonBalls[i];
-      if (!cannonBall.movementVector) {
-        continue;
-      }
-
-      const newMovementVector = addVectors(cannonBall.movementVector, gravityAccelerationOverElapsedTime);
-      const newPositionVector = addVectors(
-        cannonBall.position,
-        multiplyVectorByScalar(newMovementVector, elapsedSeconds));
-
-      cannonBall.movementVector = newMovementVector;
-      cannonBall.position = newPositionVector;
-
-      // Ball went off the map - delete it
-      if (newPositionVector.x < (- 2 * cannonBall.radius) ||
-        newPositionVector.x > (this.mapWidthMeters + 2 * cannonBall.radius) ||
-        newPositionVector.y < (-2 * cannonBall.radius) ||
-        newPositionVector.y > (this.mapHeightMeters + 2 * cannonBall.radius)) {
-        this.cannonBalls.splice(i, 1);
-      }
-    }
-  }
-
-  getViewportElements(viewport: Viewport) {
-    // TODO: Improve fitlering - it only returns elements whose center are in the VP, but clipping will occur
-    return {
-      cannonBalls: this.cannonBalls.filter(cb =>
-      (cb.position.x >= viewport.x && cb.position.x <= (viewport.x + viewport.width) &&
-        (cb.position.y >= viewport.y && cb.position.y <= (viewport.y + viewport.height)))),
-    };
-  }
-
-  spawnNewCannonBall(position: Vector, movement: Vector) {
-    // TODO: Radius and weight as input  or configurable
-    this.cannonBalls.push(new CannonBall(position, ballRadiusInMeter, 0, movement));
-  }
-}
-
-// x,y,radius,movementVector expressed in meters
-class CannonBall {
-  constructor(
-    public position: Vector,
-    public radius: number,
-    public weight: number,
-    public movementVector: Vector) {
-  }
-}
-
-interface Viewport {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
 }
 
 @Component({
@@ -152,7 +71,7 @@ export class CannonTargetShooter {
       const now = performance.now();
       const elapsedMillis = now - previousTimestamp;
       this.game.updateState(elapsedMillis / 1000);
-      this.animateCannonBall();
+      this.renderFrame();
 
       this.doGameLoop(now);
     });
@@ -204,13 +123,12 @@ export class CannonTargetShooter {
   }
 
   dropCannonBall() {
-    // The density of pure iron at room temperature is 7,874 kg/m³
     const ballVolume = (4 / 3) * Math.PI * Math.pow(ballRadiusInMeter, 3);
-    const weight = 7874 * ballVolume;
+    const weight = IronDensity * ballVolume;
 
     console.log({ cannonBallVolume: ballVolume, cannonBallWeight: weight, cannonBallRadius: ballRadiusInMeter });
 
-    this.game.spawnNewCannonBall({ x: 1, y: 100 }, { x: 0, y: 0 });
+    this.game.spawnNewCannonBall({ x: 1, y: 100 }, { x: 0, y: 0 }, ballRadiusInMeter);
   }
 
   shootCannonBall() {
@@ -218,10 +136,10 @@ export class CannonTargetShooter {
     const vX = Math.cos(angleRad) * this.launchPower();
     const vY = Math.sin(angleRad) * this.launchPower();
 
-    this.game.spawnNewCannonBall({ x: 1, y: 100 }, { x: vX, y: vY });
+    this.game.spawnNewCannonBall({ x: 1, y: 100 }, { x: vX, y: vY }, ballRadiusInMeter);
   }
 
-  animateCannonBall() {
+  renderFrame() {
     const ctx = this.cannonBallCanvas()?.nativeElement?.getContext('2d');
     if (!ctx) {
       console.error('No context found for drawing');
