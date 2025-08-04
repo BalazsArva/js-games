@@ -1,7 +1,7 @@
 import { Component, ElementRef, viewChild, signal, model, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Game, CannonBall } from './game';
-import { IronDensity, Viewport } from './types';
+import { Viewport } from './types';
 
 const defaultPixelsPerMeter = 50;
 const ballRadiusInMeter = 1;//1 / 10;
@@ -123,11 +123,6 @@ export class CannonTargetShooter {
   }
 
   dropCannonBall() {
-    const ballVolume = (4 / 3) * Math.PI * Math.pow(ballRadiusInMeter, 3);
-    const weight = IronDensity * ballVolume;
-
-    console.log({ cannonBallVolume: ballVolume, cannonBallWeight: weight, cannonBallRadius: ballRadiusInMeter });
-
     this.game.spawnNewCannonBall({ x: 1, y: 100 }, { x: 0, y: 0 }, ballRadiusInMeter);
   }
 

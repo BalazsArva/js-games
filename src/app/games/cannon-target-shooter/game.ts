@@ -1,4 +1,4 @@
-import { GravityAcceleration, Vector, Viewport } from "./types";
+import { GravityAcceleration, IronDensity, Vector, Viewport } from "./types";
 
 function addVectors(a: Vector, b: Vector) {
   return { x: a.x + b.x, y: a.y + b.y };
@@ -13,8 +13,20 @@ export class CannonBall {
   constructor(
     public position: Vector,
     public radius: number,
-    public weight: number,
     public movementVector: Vector) {
+  }
+
+  get velocity(): number {
+    return Math.sqrt(Math.pow(this.movementVector.x, 2) + Math.pow(this.movementVector.y, 2));
+  }
+
+  get kineticEnergy(): number {
+    return 0.5 * this.mass * Math.pow(this.velocity, 2);
+  }
+
+  get mass(): number {
+    const ballVolume = (4 / 3) * Math.PI * Math.pow(this.radius, 3);
+    return IronDensity * ballVolume;
   }
 }
 
@@ -33,8 +45,10 @@ export class Game {
 
     for (let i = this.cannonBalls.length - 1; i >= 0; --i) {
       const cannonBall = this.cannonBalls[i];
-      if (!cannonBall.movementVector) {
-        continue;
+
+      // TODO: Experiment only, remove later
+      if (i === 0) {
+        console.log({ velocity: cannonBall.velocity, kineticEnergy: cannonBall.kineticEnergy });
       }
 
       const newMovementVector = addVectors(cannonBall.movementVector, gravityAccelerationOverElapsedTime);
@@ -65,7 +79,6 @@ export class Game {
   }
 
   spawnNewCannonBall(position: Vector, movement: Vector, radius: number) {
-    // TODO: Weight as input or configurable
-    this.cannonBalls.push(new CannonBall(position, radius, 0, movement));
+    this.cannonBalls.push(new CannonBall(position, radius, movement));
   }
 }
