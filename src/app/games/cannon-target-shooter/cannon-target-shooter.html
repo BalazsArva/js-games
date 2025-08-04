@@ -2,7 +2,7 @@
 
 <div>
     <div>
-        <canvas #cannonBallCanvas (wheel)="onMouseWheel($event)" [width]="canvasWidth" [height]="canvasHeight"></canvas>
+        <canvas #cannonBallCanvas (wheel)="onMouseWheel($event)" (mousemove)="onMouseMove($event)" [width]="canvasWidth" [height]="canvasHeight"></canvas>
     </div>
 </div>
 

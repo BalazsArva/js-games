@@ -37,10 +37,13 @@ export class CannonTargetShooter {
   canvasHeight = 800;
 
   cannonBallCanvas = viewChild<ElementRef<HTMLCanvasElement>>('cannonBallCanvas');
+
   zoomFactor = model<number>(1);
   zoomFactorMin = signal<number>(.1);
   zoomFactorMax = signal<number>(2);
   zoomFactorStep = signal<number>(.1);
+
+  viewportCenterInMeters = signal({ x: 0, y: 0 });
 
   launchPower = signal<number>(10);
   launchAngle = signal<number>(45);
@@ -48,7 +51,7 @@ export class CannonTargetShooter {
   ballPositionInMeters: Vector = { x: 1, y: 10 };
 
   mapSize = { widthInMeters: 300, heightInMeters: 100 };
-  getViewport = computed(() => {
+  viewport = computed(() => {
     const zoomAdjustedMapWidthInPixels = convertLengthInMetersToPixels(this.mapSize.widthInMeters, this.zoomFactor());
     const zoomAdjustedMapHeightInPixels = convertLengthInMetersToPixels(this.mapSize.heightInMeters, this.zoomFactor());
 
@@ -73,6 +76,26 @@ export class CannonTargetShooter {
       this.paintCannonBall();
       this.paintMinimap();
     })
+  }
+
+  onMouseMove(e: MouseEvent) {
+
+    if (e.buttons === 2) {
+
+      const viewport = this.viewport();
+      const xDistancePercentageRelativeToCanvas = e.offsetX / this.canvasWidth;
+      const yDistancePercentageRelativeToCanvas = e.offsetY / this.canvasHeight;
+
+      const movementInMetersX = viewport.widthMeters * (e.movementX / this.canvasWidth);
+      const movementInMetersY = viewport.heightMeters * (e.movementY / this.canvasHeight);
+
+      this.viewportCenterInMeters.update(curr => { return { x: curr.x + movementInMetersX, y: curr.y + movementInMetersY }; });
+
+      e.preventDefault();
+      return false;
+    }
+
+    return true;
   }
 
   onMouseWheel(e: WheelEvent) {
@@ -202,7 +225,7 @@ export class CannonTargetShooter {
     const minimapWidth = this.canvasWidth / 5;
     const minimapHeight = minimapWidth / mapWidthToHeightRatio;
 
-    const viewport = this.getViewport();
+    const viewport = this.viewport();
     const visibleWidthPercentage = viewport.widthMeters / this.mapSize.widthInMeters;
     const visibleHeightPercentage = viewport.heightMeters / this.mapSize.heightInMeters;
 
