@@ -1,7 +1,7 @@
 import { Component, ElementRef, viewChild, signal, model, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-const ballRadiusInMeter = 1;//1 / 6;
+const ballRadiusInMeter = 1;//1 / 10;
 const defaultPixelsPerMeter = 50;
 const gravityAcceleration = 9.81;
 
@@ -204,6 +204,12 @@ export class CannonTargetShooter {
   }
 
   dropCannonBall() {
+    // The density of pure iron at room temperature is 7,874 kg/m³
+    const ballVolume = (4 / 3) * Math.PI * Math.pow(ballRadiusInMeter, 3);
+    const weight = 7874 * ballVolume;
+
+    console.log({ cannonBallVolume: ballVolume, cannonBallWeight: weight, cannonBallRadius: ballRadiusInMeter });
+
     this.game.spawnNewCannonBall({ x: 1, y: 100 }, { x: 0, y: 0 });
   }
 
@@ -247,7 +253,7 @@ export class CannonTargetShooter {
 
     ctx.fillStyle = '#333333';
     ctx.lineWidth = 1;
-    ctx.strokeStyle = '#ff0000';
+    ctx.strokeStyle = '#ffff00';
 
     const cbPath = new Path2D();
     cbPath.ellipse(canvasX, canvasY, ballRadius, ballRadius, 0, 0, 360);
