@@ -140,13 +140,7 @@ export class CannonTargetShooter {
 
     ctx.reset();
 
-    // TODO: Extract to helper
-    const viewport: Viewport = {
-      x: this.viewportBottomLeft.x,
-      y: this.viewportBottomLeft.y,
-      height: convertPixelsToMeters(this.canvasHeight, this.zoomFactor()),
-      width: convertPixelsToMeters(this.canvasWidth, this.zoomFactor()),
-    }
+    const viewport = this.getViewport();
     const viewportElements = this.game.getViewportElements(viewport);
 
     this.paintTerrain(this.game.terrain, viewport, ctx);
@@ -157,7 +151,7 @@ export class CannonTargetShooter {
       this.paintCannonBall(cannonBall, viewport, ctx);
     }
 
-    this.paintMinimap();
+    this.paintMinimap(ctx);
   }
 
   paintTerrain(terrain: Terrain, viewport: Viewport, ctx: CanvasRenderingContext2D) {
@@ -216,13 +210,7 @@ export class CannonTargetShooter {
     }
   }
 
-  paintMinimap() {
-    const ctx = this.cannonBallCanvas()?.nativeElement?.getContext('2d');
-    if (!ctx) {
-      console.error('No context found for drawing');
-      return;
-    }
-
+  paintMinimap(ctx: CanvasRenderingContext2D) {
     // TODO: Change this once moving of viewport is implemented
 
     ctx.fillStyle = '#333';
@@ -234,13 +222,7 @@ export class CannonTargetShooter {
     const minimapWidth = this.canvasWidth / 5;
     const minimapHeight = minimapWidth / mapWidthToHeightRatio;
 
-    // TODO: Extract to helper
-    const viewport: Viewport = {
-      x: this.viewportBottomLeft.x,
-      y: this.viewportBottomLeft.y,
-      height: convertPixelsToMeters(this.canvasHeight, this.zoomFactor()),
-      width: convertPixelsToMeters(this.canvasWidth, this.zoomFactor()),
-    };
+    const viewport = this.getViewport();
     const visibleWidthPercentage = viewport.width / this.game.terrain.mapWidthMeters;
     const visibleHeightPercentage = viewport.height / this.game.terrain.mapHeightMeters;
 
@@ -262,5 +244,15 @@ export class CannonTargetShooter {
       minimapViewportHeight);
 
     ctx.stroke();
+  }
+
+  getViewport(): Viewport {
+    const zoomFactor = this.zoomFactor();
+    return {
+      x: this.viewportBottomLeft.x,
+      y: this.viewportBottomLeft.y,
+      height: convertPixelsToMeters(this.canvasHeight, zoomFactor),
+      width: convertPixelsToMeters(this.canvasWidth, zoomFactor),
+    };
   }
 }
