@@ -1,5 +1,3 @@
-import { map } from "rxjs";
-
 export interface Point {
     x: number;
     y: number;
@@ -17,44 +15,81 @@ export class Terrain {
     }
 
     public static createRandom(mapWidthMeters: number, mapHeightMeters: number): Terrain {
+        const layer1 = Terrain.generateSurface2(mapWidthMeters, 3, 50, 150, 1);
+        const layer2 = Terrain.generateSurface2(mapWidthMeters, 30, 50, 50, 1);
+        const layer3 = Terrain.generateSurface2(mapWidthMeters, 300, 50, 10, 1);
+        const layer4 = Terrain.generateSurface2(mapWidthMeters, mapWidthMeters, 50, 1, 1);
 
-        /*
-        const vertices: Point[] = [
-            { x: 0, y: 0 },
-            { x: 0, y: 10 },
-            { x: mapWidthMeters * (2 / 8), y: 10 },
-            { x: mapWidthMeters * (3 / 8), y: 50 },
-            { x: mapWidthMeters * (4 / 8), y: 125 },
-            { x: mapWidthMeters * (5 / 8), y: 50 },
-            { x: mapWidthMeters * (6 / 8), y: 10 },
-            { x: mapWidthMeters, y: 10 },
-            { x: mapWidthMeters, y: 0 },
-        ];
-        */
-        const vertices: Point[] = [
-            { x: 0, y: 0 },
-            { x: 0, y: 10 },
-        ];
+        const merged = Terrain.mergeSurfaces(20, [layer1, layer2, layer3, layer4]);
 
-        // TODO: Try creating multiple layers with multiple distances and combine them.
-        // Smaller ones contribute to terrain unevenness while large ones define the general geography.
-        const bumpiness = 5;
-        const bumpDistance = 5;
-        for (let i = bumpDistance; i < mapWidthMeters; i += bumpDistance) {
-
-            const y = bumpiness + (Math.random() * 2 * bumpiness);
-
-            vertices.push({ x: i, y: y });
-        }
-        vertices.push({ x: mapWidthMeters, y: 10 });
-        vertices.push({ x: mapWidthMeters, y: 0 });
+        merged.unshift({ x: 0, y: 0 });
+        merged.push({ x: mapWidthMeters, y: 0 });
 
         const ground: Polygon = {
-            vertices: vertices
-        }
+            vertices: merged
+        };
 
         const result = new Terrain(mapWidthMeters, mapHeightMeters)
         result.landPolygons.push(ground);
+
+        return result;
+    }
+
+
+    private static generateSurface2(width: number, numberOfFeaturePoints: number, baseline: number, baselineOffset: number, resolution: number) {
+        const featurePoints: Point[] = [{ x: 0, y: baseline }];
+        for (let i = 0; i < numberOfFeaturePoints; ++i) {
+            featurePoints.push({
+                x: Math.random() * width,
+                y: baseline + Math.random() * baselineOffset
+                //y: (baseline - (baselineOffset / 2)) + (Math.random() * baselineOffset)
+            });
+        }
+        featurePoints.push({ x: width, y: baseline })
+
+        featurePoints.sort((a, b) => a.x - b.x);
+
+        const result: Point[] = [
+            { x: 0, y: baseline },
+        ];
+        for (let i = resolution; i < width; i += resolution) {
+            // TODO: Check edge cases
+            const succeedingFeaturePointIndex = featurePoints.findIndex(p => p.x >= i);
+            const preceedingFeaturePointIndex = succeedingFeaturePointIndex - 1;
+
+            const succeedingFeaturePoint = featurePoints[succeedingFeaturePointIndex];
+            const preceedingFeaturePoint = featurePoints[preceedingFeaturePointIndex];
+
+            const featurePointsDistance = succeedingFeaturePoint.x - preceedingFeaturePoint.x;
+            const featurePointsHeightDiff = succeedingFeaturePoint.y - preceedingFeaturePoint.y;
+
+            const currentHDistanceToPreceedingFeaturePoint = i - preceedingFeaturePoint.x;
+            const currentHDistanceProportionBetweenFeaturePoints = currentHDistanceToPreceedingFeaturePoint / featurePointsDistance
+
+            const y = preceedingFeaturePoint.y + (featurePointsHeightDiff * currentHDistanceProportionBetweenFeaturePoints);
+
+            result.push({ x: i, y: y });
+        }
+        result.push({ x: width, y: baseline });
+
+        return result;
+    }
+
+    private static mergeSurfaces(baseline: number, surfaces: Point[][]) {
+        // baseline appears in every surface, so need to subtract it from the combined heights as many times
+        // as there are surfaces to combine.
+        const baselineAdjustment = surfaces.length * baseline;
+
+        const result: Point[] = [];
+        // TODO: Check that all inputs have same length
+        for (let i = 0; i < surfaces[0].length; ++i) {
+            let sum = 0;
+            for (let j = 0; j < surfaces.length; ++j) {
+                sum += surfaces[j][i].y;
+            }
+            sum -= baselineAdjustment;
+            result.push({ x: i, y: sum });
+        }
 
         return result;
     }
