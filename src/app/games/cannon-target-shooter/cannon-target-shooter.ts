@@ -58,13 +58,6 @@ export class CannonTargetShooter {
 
   ngAfterViewInit() {
     this.doGameLoop(0);
-
-    /*
-    this.zoomFactor.subscribe(() => {
-      this.paintCannonBall();
-      this.paintMinimap();
-    })
-    */
   }
 
   doGameLoop(previousTimestamp: number) {
