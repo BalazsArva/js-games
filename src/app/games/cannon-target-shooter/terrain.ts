@@ -36,8 +36,13 @@ export class Terrain {
             { x: 0, y: 10 },
         ];
 
-        for (let i = 10; i < mapWidthMeters; i += 10) {
-            const y = 5 + (Math.random() * 10);
+        // TODO: Try creating multiple layers with multiple distances and combine them.
+        // Smaller ones contribute to terrain unevenness while large ones define the general geography.
+        const bumpiness = 5;
+        const bumpDistance = 5;
+        for (let i = bumpDistance; i < mapWidthMeters; i += bumpDistance) {
+
+            const y = bumpiness + (Math.random() * 2 * bumpiness);
 
             vertices.push({ x: i, y: y });
         }
