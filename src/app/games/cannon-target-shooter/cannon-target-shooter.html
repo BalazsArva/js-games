@@ -12,10 +12,7 @@
     <div class="col">
         <div class="mb-3">
             <label class="form-label">Zoom factor</label>
-            <div class="input-group">
-                <input type="range" min="0.1" step="0.1" max="2" [(ngModel)]="zoomFactor" />
-            </div>
-            <div class="form-text">{{ zoomFactor() }} </div>
+            <div class="form-text">Use mouse wheel for now</div>
         </div>
     </div>
 
@@ -54,6 +51,7 @@
             <li>
                 When zoomed out enough, the minimap viewport rect overflows the minimap rect
             </li>
+            <li>Viewport should zoom around center point</li>
             <li>Click on minimap to move viewport quickly</li>
             <li>Add some backdrop for a visual guide</li>
             <li>Instead of launch velocity, use "explosive energy" and convert it to speed. Be able to adjust explosives

@@ -30,13 +30,33 @@ export class CannonTargetShooter {
 
   game = new Game(Terrain.createRandom(1500, 300));
 
-  zoomFactor = model<number>(1);
   zoomFactorMin = signal<number>(.05);
   zoomFactorMax = signal<number>(2);
-  zoomFactorStep = signal<number>(.1);
+  zoomFactorStep = signal<number>(.05);
 
   launchPower = signal<number>(10);
   launchAngle = signal<number>(45);
+
+
+  zoomSetting = {
+    issuedAt: 0,
+    value: 1,
+    previousValue: 1,
+  };
+
+  zoomFactor() {
+    const zoomAnimationMillis = 500;
+    const now = performance.now()
+    const elapsedMillis = now - this.zoomSetting.issuedAt;
+
+    if (elapsedMillis >= zoomAnimationMillis) {
+      return this.zoomSetting.value;
+    }
+
+    const diff = this.zoomSetting.value - this.zoomSetting.previousValue;
+
+    return this.zoomSetting.previousValue + (diff * (elapsedMillis / zoomAnimationMillis));
+  }
 
   viewportBottomLeft = {
     x: 0,
@@ -97,22 +117,28 @@ export class CannonTargetShooter {
   onMouseWheel(e: WheelEvent) {
     if (e.deltaY > 0) {
       // scroll down, zoom out
-      this.zoomFactor.update(curr => {
-        const newVal = curr - this.zoomFactorStep();
-        if (newVal > this.zoomFactorMin()) {
-          return newVal;
-        }
-        return this.zoomFactorMin();
-      });
+      let newVal = this.zoomSetting.value - this.zoomFactorStep();
+      if (newVal < this.zoomFactorMin()) {
+        newVal = this.zoomFactorMin();
+      }
+
+      this.zoomSetting = {
+        issuedAt: performance.now(),
+        previousValue: this.zoomFactor(),
+        value: newVal,
+      };
     } else if (e.deltaY < 0) {
       // scroll up, zoom in
-      this.zoomFactor.update(curr => {
-        const newVal = curr + this.zoomFactorStep();
-        if (newVal < this.zoomFactorMax()) {
-          return newVal;
-        }
-        return this.zoomFactorMax();
-      });
+      let newVal = this.zoomSetting.value + this.zoomFactorStep();
+      if (newVal > this.zoomFactorMax()) {
+        newVal = this.zoomFactorMax();
+      }
+
+      this.zoomSetting = {
+        issuedAt: performance.now(),
+        previousValue: this.zoomFactor(),
+        value: newVal,
+      };
     }
 
     e.preventDefault();
