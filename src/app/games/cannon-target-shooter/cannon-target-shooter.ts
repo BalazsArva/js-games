@@ -11,6 +11,10 @@ function convertLengthInMetersToPixels(lengthInMeters: number, zoomFactor: numbe
   return lengthInMeters * defaultPixelsPerMeter * zoomFactor;
 }
 
+function convertPixelsToMeters(pixels: number, zoomFactor: number) {
+  return pixels / (defaultPixelsPerMeter * zoomFactor);
+}
+
 @Component({
   selector: 'app-cannon-target-shooter',
   imports: [FormsModule],
@@ -31,30 +35,13 @@ export class CannonTargetShooter {
   zoomFactorMax = signal<number>(2);
   zoomFactorStep = signal<number>(.1);
 
-  viewportCenterInMeters = signal({ x: 0, y: 0 });
-
   launchPower = signal<number>(10);
   launchAngle = signal<number>(45);
 
-
-  viewport = computed<Viewport>(() => {
-    const mapSize = { widthInMeters: this.game.terrain.mapWidthMeters, heightInMeters: this.game.terrain.mapHeightMeters };
-
-    const zoomAdjustedMapWidthInPixels = convertLengthInMetersToPixels(mapSize.widthInMeters, this.zoomFactor());
-    const zoomAdjustedMapHeightInPixels = convertLengthInMetersToPixels(mapSize.heightInMeters, this.zoomFactor());
-
-    const viewportWidthInMeters = this.game.terrain.mapWidthMeters / (zoomAdjustedMapWidthInPixels / this.canvasWidth);
-    const viewportHeightInMeters = this.game.terrain.mapHeightMeters / (zoomAdjustedMapHeightInPixels / this.canvasHeight);
-
-    // bounding box measured in meters
-    // TODO: Imolement moving of viewport
-    return {
-      x: 0,
-      y: 0,
-      width: viewportWidthInMeters,
-      height: viewportHeightInMeters,
-    };
-  })
+  viewportBottomLeft = {
+    x: 0,
+    y: 0,
+  };
 
   ngAfterViewInit() {
     this.doGameLoop(0);
@@ -72,17 +59,33 @@ export class CannonTargetShooter {
   }
 
   onMouseMove(e: MouseEvent) {
-
     if (e.buttons === 2) {
+      const zoomFactor = this.zoomFactor();
+      const hMovement = convertPixelsToMeters(e.movementX, zoomFactor);
+      const vMovement = convertPixelsToMeters(e.movementY, zoomFactor);
 
-      const viewport = this.viewport();
-      const xDistancePercentageRelativeToCanvas = e.offsetX / this.canvasWidth;
-      const yDistancePercentageRelativeToCanvas = e.offsetY / this.canvasHeight;
+      // TODO: Use some helper for viewport here too
+      const height = convertPixelsToMeters(this.canvasHeight, zoomFactor);
+      const width = convertPixelsToMeters(this.canvasWidth, zoomFactor);
 
-      const movementInMetersX = viewport.width * (e.movementX / this.canvasWidth);
-      const movementInMetersY = viewport.height * (e.movementY / this.canvasHeight);
+      let bottomLeftX = this.viewportBottomLeft.x - hMovement;
+      if (bottomLeftX < 0) {
+        bottomLeftX = 0;
+      } else if (bottomLeftX + width > this.game.terrain.mapWidthMeters) {
+        bottomLeftX = this.game.terrain.mapWidthMeters - width;
+      }
 
-      this.viewportCenterInMeters.update(curr => { return { x: curr.x + movementInMetersX, y: curr.y + movementInMetersY }; });
+      let bottomLeftY = this.viewportBottomLeft.y + vMovement;
+      if (bottomLeftY < 0) {
+        bottomLeftY = 0;
+      } else if (bottomLeftY + height > this.game.terrain.mapHeightMeters) {
+        bottomLeftY = this.game.terrain.mapHeightMeters - height;
+      }
+
+      this.viewportBottomLeft = {
+        x: bottomLeftX,
+        y: bottomLeftY,
+      };
 
       e.preventDefault();
       return false;
@@ -137,7 +140,13 @@ export class CannonTargetShooter {
 
     ctx.reset();
 
-    const viewport = this.viewport();
+    // TODO: Extract to helper
+    const viewport: Viewport = {
+      x: this.viewportBottomLeft.x,
+      y: this.viewportBottomLeft.y,
+      height: convertPixelsToMeters(this.canvasHeight, this.zoomFactor()),
+      width: convertPixelsToMeters(this.canvasWidth, this.zoomFactor()),
+    }
     const viewportElements = this.game.getViewportElements(viewport);
 
     this.paintTerrain(this.game.terrain, viewport, ctx);
@@ -225,7 +234,13 @@ export class CannonTargetShooter {
     const minimapWidth = this.canvasWidth / 5;
     const minimapHeight = minimapWidth / mapWidthToHeightRatio;
 
-    const viewport = this.viewport();
+    // TODO: Extract to helper
+    const viewport: Viewport = {
+      x: this.viewportBottomLeft.x,
+      y: this.viewportBottomLeft.y,
+      height: convertPixelsToMeters(this.canvasHeight, this.zoomFactor()),
+      width: convertPixelsToMeters(this.canvasWidth, this.zoomFactor()),
+    };
     const visibleWidthPercentage = viewport.width / this.game.terrain.mapWidthMeters;
     const visibleHeightPercentage = viewport.height / this.game.terrain.mapHeightMeters;
 

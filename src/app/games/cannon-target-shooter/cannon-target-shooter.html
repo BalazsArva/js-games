@@ -3,7 +3,8 @@
 <div>
     <div>
         <canvas style="background:#999;" #cannonBallCanvas (wheel)="onMouseWheel($event)"
-            (mousemove)="onMouseMove($event)" [width]="canvasWidth" [height]="canvasHeight"></canvas>
+            (contextmenu)="$event.preventDefault()" (mousemove)="onMouseMove($event)" [width]="canvasWidth"
+            [height]="canvasHeight"></canvas>
     </div>
 </div>
 

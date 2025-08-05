@@ -1,3 +1,5 @@
+import { map } from "rxjs";
+
 export interface Point {
     x: number;
     y: number;
@@ -15,6 +17,8 @@ export class Terrain {
     }
 
     public static createRandom(mapWidthMeters: number, mapHeightMeters: number): Terrain {
+
+        /*
         const vertices: Point[] = [
             { x: 0, y: 0 },
             { x: 0, y: 10 },
@@ -26,6 +30,20 @@ export class Terrain {
             { x: mapWidthMeters, y: 10 },
             { x: mapWidthMeters, y: 0 },
         ];
+        */
+        const vertices: Point[] = [
+            { x: 0, y: 0 },
+            { x: 0, y: 10 },
+        ];
+
+
+        for (let i = 10; i < mapWidthMeters; i += 10) {
+            const y = 5 + (Math.random() * 10);
+
+            vertices.push({ x: i, y: y });
+        }
+        vertices.push({ x: mapWidthMeters, y: 10 });
+        vertices.push({ x: mapWidthMeters, y: 0 });
 
         const ground: Polygon = {
             vertices: vertices
