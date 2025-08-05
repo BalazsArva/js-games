@@ -2,6 +2,7 @@ import { Component, ElementRef, viewChild, signal, model, computed } from '@angu
 import { FormsModule } from '@angular/forms';
 import { Game, CannonBall } from './game';
 import { Viewport } from './types';
+import { Terrain } from './terrain';
 
 const defaultPixelsPerMeter = 50;
 const ballRadiusInMeter = 1;//1 / 10;
@@ -23,7 +24,7 @@ export class CannonTargetShooter {
 
   cannonBallCanvas = viewChild<ElementRef<HTMLCanvasElement>>('cannonBallCanvas');
 
-  game = new Game(1500, 300);
+  game = new Game(Terrain.createRandom(1500, 300));
 
   zoomFactor = model<number>(1);
   zoomFactorMin = signal<number>(.1);
@@ -37,13 +38,13 @@ export class CannonTargetShooter {
 
 
   viewport = computed<Viewport>(() => {
-    const mapSize = { widthInMeters: this.game.mapWidthMeters, heightInMeters: this.game.mapHeightMeters };
+    const mapSize = { widthInMeters: this.game.terrain.mapWidthMeters, heightInMeters: this.game.terrain.mapHeightMeters };
 
     const zoomAdjustedMapWidthInPixels = convertLengthInMetersToPixels(mapSize.widthInMeters, this.zoomFactor());
     const zoomAdjustedMapHeightInPixels = convertLengthInMetersToPixels(mapSize.heightInMeters, this.zoomFactor());
 
-    const viewportWidthInMeters = this.game.mapWidthMeters / (zoomAdjustedMapWidthInPixels / this.canvasWidth);
-    const viewportHeightInMeters = this.game.mapHeightMeters / (zoomAdjustedMapHeightInPixels / this.canvasHeight);
+    const viewportWidthInMeters = this.game.terrain.mapWidthMeters / (zoomAdjustedMapWidthInPixels / this.canvasWidth);
+    const viewportHeightInMeters = this.game.terrain.mapHeightMeters / (zoomAdjustedMapHeightInPixels / this.canvasHeight);
 
     // bounding box measured in meters
     // TODO: Imolement moving of viewport
@@ -146,6 +147,8 @@ export class CannonTargetShooter {
     const viewport = this.viewport();
     const viewportElements = this.game.getViewportElements(viewport);
 
+    this.paintTerrain(this.game.terrain, viewport, ctx);
+
     for (let i = 0; i < viewportElements.cannonBalls.length; ++i) {
       const cannonBall = viewportElements.cannonBalls[i];
 
@@ -153,6 +156,33 @@ export class CannonTargetShooter {
     }
 
     this.paintMinimap();
+  }
+
+  paintTerrain(terrain: Terrain, viewport: Viewport, ctx: CanvasRenderingContext2D) {
+    const zoomFactor = this.zoomFactor();
+
+    ctx.fillStyle = '#089654ff';
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#047440ff';
+
+    for (let i = 0; i < terrain.landPolygons.length; ++i) {
+      const poly = terrain.landPolygons[i];
+      const vertices = poly.vertices;
+
+      const path = new Path2D();
+      path.moveTo(
+        convertLengthInMetersToPixels(vertices[0].x - viewport.x, zoomFactor),
+        this.canvasHeight - convertLengthInMetersToPixels(vertices[0].y - viewport.y, zoomFactor));
+
+      for (let j = 1; j < poly.vertices.length; ++j) {
+        path.lineTo(
+          convertLengthInMetersToPixels(vertices[j].x - viewport.x, zoomFactor),
+          this.canvasHeight - convertLengthInMetersToPixels(vertices[j].y - viewport.y, zoomFactor));
+      }
+
+      ctx.fill(path);
+      ctx.stroke(path);
+    }
   }
 
   paintCannonBall(cannonBall: CannonBall, viewport: Viewport, ctx: CanvasRenderingContext2D) {
@@ -198,13 +228,13 @@ export class CannonTargetShooter {
     ctx.strokeStyle = '#000000';
 
     const margin = 20;
-    const mapWidthToHeightRatio = this.game.mapWidthMeters / this.game.mapHeightMeters;
+    const mapWidthToHeightRatio = this.game.terrain.mapWidthMeters / this.game.terrain.mapHeightMeters;
     const minimapWidth = this.canvasWidth / 5;
     const minimapHeight = minimapWidth / mapWidthToHeightRatio;
 
     const viewport = this.viewport();
-    const visibleWidthPercentage = viewport.width / this.game.mapWidthMeters;
-    const visibleHeightPercentage = viewport.height / this.game.mapHeightMeters;
+    const visibleWidthPercentage = viewport.width / this.game.terrain.mapWidthMeters;
+    const visibleHeightPercentage = viewport.height / this.game.terrain.mapHeightMeters;
 
     const minimapViewportWidth = minimapWidth * visibleWidthPercentage;
     const minimapViewportHeight = minimapHeight * visibleHeightPercentage;

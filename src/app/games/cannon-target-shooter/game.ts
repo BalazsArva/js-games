@@ -1,4 +1,12 @@
-import { AirDensity, DragCoefficientSphere, GravityAcceleration, IronDensity, Vector, Viewport } from "./types";
+import {
+  AirDensity,
+  DragCoefficientSphere,
+  GravityAcceleration,
+  IronDensity,
+  Vector,
+  Viewport
+} from "./types";
+import { Terrain } from "./terrain";
 
 function addVectors(a: Vector, b: Vector) {
   return { x: a.x + b.x, y: a.y + b.y };
@@ -47,7 +55,7 @@ export class CannonBall {
 export class Game {
   private cannonBalls: CannonBall[] = [];
 
-  constructor(public mapWidthMeters: number, public mapHeightMeters: number) {
+  constructor(public terrain: Terrain) {
   }
 
   updateState(elapsedSeconds: number) {
@@ -94,9 +102,9 @@ export class Game {
 
       // Ball went off the map - delete it
       if (newPositionVector.x < (- 2 * cannonBall.radius) ||
-        newPositionVector.x > (this.mapWidthMeters + 2 * cannonBall.radius) ||
+        newPositionVector.x > (this.terrain.mapWidthMeters + 2 * cannonBall.radius) ||
         newPositionVector.y < (-2 * cannonBall.radius) ||
-        newPositionVector.y > (this.mapHeightMeters + 2 * cannonBall.radius)) {
+        newPositionVector.y > (this.terrain.mapHeightMeters + 2 * cannonBall.radius)) {
         this.cannonBalls.splice(i, 1);
       }
     }
