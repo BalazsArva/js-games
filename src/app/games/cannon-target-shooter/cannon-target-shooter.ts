@@ -211,8 +211,6 @@ export class CannonTargetShooter {
   }
 
   paintMinimap(ctx: CanvasRenderingContext2D) {
-    // TODO: Change this once moving of viewport is implemented
-
     ctx.fillStyle = '#333';
     ctx.lineWidth = 1;
     ctx.strokeStyle = '#000000';
@@ -228,22 +226,26 @@ export class CannonTargetShooter {
 
     const minimapViewportWidth = minimapWidth * visibleWidthPercentage;
     const minimapViewportHeight = minimapHeight * visibleHeightPercentage;
+    const minimapViewportX = (this.viewportBottomLeft.x / this.game.terrain.mapWidthMeters) * minimapWidth;
+    const minimapViewportY = (this.viewportBottomLeft.y / this.game.terrain.mapHeightMeters) * minimapHeight;
 
-    ctx.rect(
+    const minimapFull = new Path2D();
+    const minimapViewport = new Path2D();
+
+    minimapFull.rect(
       this.canvasWidth - minimapWidth - margin,
       margin,
       minimapWidth,
       minimapHeight);
 
-    ctx.stroke();
-
-    ctx.rect(
-      this.canvasWidth - minimapWidth - margin,
-      margin,
+    minimapViewport.rect(
+      this.canvasWidth - minimapWidth - margin + minimapViewportX,
+      margin + minimapHeight - minimapViewportHeight - minimapViewportY,
       minimapViewportWidth,
       minimapViewportHeight);
 
-    ctx.stroke();
+    ctx.stroke(minimapFull);
+    ctx.stroke(minimapViewport);
   }
 
   getViewport(): Viewport {
