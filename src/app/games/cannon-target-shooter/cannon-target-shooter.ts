@@ -31,7 +31,7 @@ export class CannonTargetShooter {
   game = new Game(Terrain.createRandom(1500, 300));
 
   zoomFactor = model<number>(1);
-  zoomFactorMin = signal<number>(.1);
+  zoomFactorMin = signal<number>(.05);
   zoomFactorMax = signal<number>(2);
   zoomFactorStep = signal<number>(.1);
 
@@ -44,7 +44,7 @@ export class CannonTargetShooter {
   };
 
   ngAfterViewInit() {
-    this.doGameLoop(0);
+    this.doGameLoop(performance.now());
   }
 
   doGameLoop(previousTimestamp: number) {

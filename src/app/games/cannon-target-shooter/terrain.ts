@@ -36,7 +36,6 @@ export class Terrain {
             { x: 0, y: 10 },
         ];
 
-
         for (let i = 10; i < mapWidthMeters; i += 10) {
             const y = 5 + (Math.random() * 10);
 
