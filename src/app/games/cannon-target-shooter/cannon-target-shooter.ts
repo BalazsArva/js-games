@@ -32,7 +32,7 @@ export class CannonTargetShooter {
 
   zoomFactorMin = signal<number>(.05);
   zoomFactorMax = signal<number>(2);
-  zoomFactorStep = signal<number>(.05);
+  zoomFactorStep = signal<number>(.01);
 
   launchPower = signal<number>(10);
   launchAngle = signal<number>(45);
