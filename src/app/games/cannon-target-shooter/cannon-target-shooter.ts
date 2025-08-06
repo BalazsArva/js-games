@@ -1,19 +1,8 @@
-import { Component, ElementRef, viewChild, signal, model, computed } from '@angular/core';
+import { Component, ElementRef, viewChild, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Game, CannonBall } from './game';
-import { Viewport } from './types';
+import { Game, GameHost, Renderer, ZoomOutCommand, ZoomInCommand, DragScreenCommand, ShootCannonBallCommand, DropCannonBallCommand } from './game';
 import { Terrain } from './terrain';
 
-const defaultPixelsPerMeter = 50;
-const ballRadiusInMeter = 1;//1 / 10;
-
-function convertLengthInMetersToPixels(lengthInMeters: number, zoomFactor: number) {
-  return lengthInMeters * defaultPixelsPerMeter * zoomFactor;
-}
-
-function convertPixelsToMeters(pixels: number, zoomFactor: number) {
-  return pixels / (defaultPixelsPerMeter * zoomFactor);
-}
 
 @Component({
   selector: 'app-cannon-target-shooter',
@@ -25,87 +14,27 @@ export class CannonTargetShooter {
 
   canvasWidth = 1200;
   canvasHeight = 800;
-
   cannonBallCanvas = viewChild<ElementRef<HTMLCanvasElement>>('cannonBallCanvas');
-
-  game = new Game(Terrain.createRandom(1500, 300));
-
-  zoomFactorMin = signal<number>(.05);
-  zoomFactorMax = signal<number>(2);
-  zoomFactorStep = signal<number>(.01);
 
   launchPower = signal<number>(10);
   launchAngle = signal<number>(45);
 
-
-  zoomSetting = {
-    issuedAt: 0,
-    value: 1,
-    previousValue: 1,
-  };
-
-  zoomFactor() {
-    const zoomAnimationMillis = 500;
-    const now = performance.now()
-    const elapsedMillis = now - this.zoomSetting.issuedAt;
-
-    if (elapsedMillis >= zoomAnimationMillis) {
-      return this.zoomSetting.value;
-    }
-
-    const diff = this.zoomSetting.value - this.zoomSetting.previousValue;
-
-    return this.zoomSetting.previousValue + (diff * (elapsedMillis / zoomAnimationMillis));
-  }
-
-  viewportBottomLeft = {
-    x: 0,
-    y: 0,
-  };
+  gameHost: GameHost | undefined;
 
   ngAfterViewInit() {
-    this.doGameLoop(performance.now());
-  }
-
-  doGameLoop(previousTimestamp: number) {
-    requestAnimationFrame(() => {
-      const now = performance.now();
-      const elapsedMillis = now - previousTimestamp;
-      this.game.updateState(elapsedMillis / 1000);
-      this.renderFrame();
-
-      this.doGameLoop(now);
-    });
+    this.gameHost = new GameHost(
+      new Game(Terrain.createRandom(1500, 300)),
+      new Renderer(this.cannonBallCanvas()?.nativeElement!));
+    this.gameHost.startup();
   }
 
   onMouseMove(e: MouseEvent) {
+    if (!this.gameHost) {
+      return;
+    }
+
     if (e.buttons === 2) {
-      const zoomFactor = this.zoomFactor();
-      const hMovement = convertPixelsToMeters(e.movementX, zoomFactor);
-      const vMovement = convertPixelsToMeters(e.movementY, zoomFactor);
-
-      // TODO: Use some helper for viewport here too
-      const height = convertPixelsToMeters(this.canvasHeight, zoomFactor);
-      const width = convertPixelsToMeters(this.canvasWidth, zoomFactor);
-
-      let bottomLeftX = this.viewportBottomLeft.x - hMovement;
-      if (bottomLeftX < 0) {
-        bottomLeftX = 0;
-      } else if (bottomLeftX + width > this.game.terrain.mapWidthMeters) {
-        bottomLeftX = this.game.terrain.mapWidthMeters - width;
-      }
-
-      let bottomLeftY = this.viewportBottomLeft.y + vMovement;
-      if (bottomLeftY < 0) {
-        bottomLeftY = 0;
-      } else if (bottomLeftY + height > this.game.terrain.mapHeightMeters) {
-        bottomLeftY = this.game.terrain.mapHeightMeters - height;
-      }
-
-      this.viewportBottomLeft = {
-        x: bottomLeftX,
-        y: bottomLeftY,
-      };
+      this.gameHost.sendCommand(new DragScreenCommand(e.movementX, e.movementY));
 
       e.preventDefault();
       return false;
@@ -115,30 +44,14 @@ export class CannonTargetShooter {
   }
 
   onMouseWheel(e: WheelEvent) {
+    if (!this.gameHost) {
+      return;
+    }
+
     if (e.deltaY > 0) {
-      // scroll down, zoom out
-      let newVal = this.zoomSetting.value - this.zoomFactorStep();
-      if (newVal < this.zoomFactorMin()) {
-        newVal = this.zoomFactorMin();
-      }
-
-      this.zoomSetting = {
-        issuedAt: performance.now(),
-        previousValue: this.zoomFactor(),
-        value: newVal,
-      };
+      this.gameHost.sendCommand(new ZoomOutCommand());
     } else if (e.deltaY < 0) {
-      // scroll up, zoom in
-      let newVal = this.zoomSetting.value + this.zoomFactorStep();
-      if (newVal > this.zoomFactorMax()) {
-        newVal = this.zoomFactorMax();
-      }
-
-      this.zoomSetting = {
-        issuedAt: performance.now(),
-        previousValue: this.zoomFactor(),
-        value: newVal,
-      };
+      this.gameHost.sendCommand(new ZoomInCommand());
     }
 
     e.preventDefault();
@@ -146,141 +59,18 @@ export class CannonTargetShooter {
   }
 
   dropCannonBall() {
-    this.game.spawnNewCannonBall({ x: 1, y: 100 }, { x: 0, y: 0 }, ballRadiusInMeter);
-  }
-
-  shootCannonBall() {
-    const angleRad = (this.launchAngle() * Math.PI) / 180;
-    const vX = Math.cos(angleRad) * this.launchPower();
-    const vY = Math.sin(angleRad) * this.launchPower();
-
-    this.game.spawnNewCannonBall({ x: 1, y: 100 }, { x: vX, y: vY }, ballRadiusInMeter);
-  }
-
-  renderFrame() {
-    const ctx = this.cannonBallCanvas()?.nativeElement?.getContext('2d');
-    if (!ctx) {
-      console.error('No context found for drawing');
+    if (!this.gameHost) {
       return;
     }
 
-    ctx.reset();
+    this.gameHost.sendCommand(new DropCannonBallCommand(1, 100));
+  }
 
-    const viewport = this.getViewport();
-    const viewportElements = this.game.getViewportElements(viewport);
-
-    this.paintTerrain(this.game.terrain, viewport, ctx);
-
-    for (let i = 0; i < viewportElements.cannonBalls.length; ++i) {
-      const cannonBall = viewportElements.cannonBalls[i];
-
-      this.paintCannonBall(cannonBall, viewport, ctx);
+  shootCannonBall() {
+    if (!this.gameHost) {
+      return;
     }
 
-    this.paintMinimap(ctx);
-  }
-
-  paintTerrain(terrain: Terrain, viewport: Viewport, ctx: CanvasRenderingContext2D) {
-    const zoomFactor = this.zoomFactor();
-
-    ctx.fillStyle = '#089654ff';
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = '#047440ff';
-
-    for (let i = 0; i < terrain.landPolygons.length; ++i) {
-      const poly = terrain.landPolygons[i];
-      const vertices = poly.vertices;
-
-      const path = new Path2D();
-      path.moveTo(
-        convertLengthInMetersToPixels(vertices[0].x - viewport.x, zoomFactor),
-        this.canvasHeight - convertLengthInMetersToPixels(vertices[0].y - viewport.y, zoomFactor));
-
-      for (let j = 1; j < poly.vertices.length; ++j) {
-        path.lineTo(
-          convertLengthInMetersToPixels(vertices[j].x - viewport.x, zoomFactor),
-          this.canvasHeight - convertLengthInMetersToPixels(vertices[j].y - viewport.y, zoomFactor));
-      }
-
-      ctx.fill(path);
-      ctx.stroke(path);
-    }
-  }
-
-  paintCannonBall(cannonBall: CannonBall, viewport: Viewport, ctx: CanvasRenderingContext2D) {
-    const zoomFactor = this.zoomFactor();
-    const ballRadius = convertLengthInMetersToPixels(cannonBall.radius, zoomFactor);
-    const xRelativeToViewport = cannonBall.position.x - viewport.x;
-    const yRelativeToViewport = cannonBall.position.y - viewport.y;
-
-    const canvasX = convertLengthInMetersToPixels(xRelativeToViewport, zoomFactor);
-    const canvasY = this.canvasHeight - convertLengthInMetersToPixels(yRelativeToViewport, zoomFactor);
-
-    ctx.fillStyle = '#333333';
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = '#ffff00';
-
-    const cbPath = new Path2D();
-    cbPath.ellipse(canvasX, canvasY, ballRadius, ballRadius, 0, 0, 360);
-    ctx.fill(cbPath);
-
-    // TODO: Take this setting from a flag
-    if (cannonBall.movementVector) {
-      const vecPath = new Path2D();
-      const vectorMagnifier = 10 * this.zoomFactor();
-
-      vecPath.moveTo(canvasX, canvasY);
-      vecPath.lineTo(canvasX + (vectorMagnifier * cannonBall.movementVector.x), canvasY - (vectorMagnifier * cannonBall.movementVector.y));
-
-      ctx.stroke(vecPath);
-    }
-  }
-
-  paintMinimap(ctx: CanvasRenderingContext2D) {
-    ctx.fillStyle = '#333';
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = '#000000';
-
-    const margin = 20;
-    const mapWidthToHeightRatio = this.game.terrain.mapWidthMeters / this.game.terrain.mapHeightMeters;
-    const minimapWidth = this.canvasWidth / 5;
-    const minimapHeight = minimapWidth / mapWidthToHeightRatio;
-
-    const viewport = this.getViewport();
-    const visibleWidthPercentage = viewport.width / this.game.terrain.mapWidthMeters;
-    const visibleHeightPercentage = viewport.height / this.game.terrain.mapHeightMeters;
-
-    const minimapViewportWidth = minimapWidth * visibleWidthPercentage;
-    const minimapViewportHeight = minimapHeight * visibleHeightPercentage;
-    const minimapViewportX = (this.viewportBottomLeft.x / this.game.terrain.mapWidthMeters) * minimapWidth;
-    const minimapViewportY = (this.viewportBottomLeft.y / this.game.terrain.mapHeightMeters) * minimapHeight;
-
-    const minimapFull = new Path2D();
-    const minimapViewport = new Path2D();
-
-    minimapFull.rect(
-      this.canvasWidth - minimapWidth - margin,
-      margin,
-      minimapWidth,
-      minimapHeight);
-
-    minimapViewport.rect(
-      this.canvasWidth - minimapWidth - margin + minimapViewportX,
-      margin + minimapHeight - minimapViewportHeight - minimapViewportY,
-      minimapViewportWidth,
-      minimapViewportHeight);
-
-    ctx.stroke(minimapFull);
-    ctx.stroke(minimapViewport);
-  }
-
-  getViewport(): Viewport {
-    const zoomFactor = this.zoomFactor();
-    return {
-      x: this.viewportBottomLeft.x,
-      y: this.viewportBottomLeft.y,
-      height: convertPixelsToMeters(this.canvasHeight, zoomFactor),
-      width: convertPixelsToMeters(this.canvasWidth, zoomFactor),
-    };
+    this.gameHost.sendCommand(new ShootCannonBallCommand(this.launchAngle(), this.launchPower()));
   }
 }
