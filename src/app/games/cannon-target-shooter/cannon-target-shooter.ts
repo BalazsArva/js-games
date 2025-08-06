@@ -1,8 +1,10 @@
 import { Component, ElementRef, viewChild, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Game, GameHost, Renderer, ZoomOutCommand, ZoomInCommand, DragScreenCommand, ShootCannonBallCommand, DropCannonBallCommand } from './game';
+import { Game } from './game';
+import { GameHost } from './game-host';
+import { Renderer } from './renderer';
+import { ZoomOutCommand, ZoomInCommand, DragScreenCommand, ShootCannonBallCommand, DropCannonBallCommand } from './types';
 import { Terrain } from './terrain';
-
 
 @Component({
   selector: 'app-cannon-target-shooter',
