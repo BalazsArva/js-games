@@ -1,5 +1,5 @@
 import { convertLengthInMetersToPixels, Viewport } from "./types";
-import { Terrain } from "./terrain";
+import { Polygon, Terrain } from "./terrain";
 import { CannonBall, ViewportElements } from "./game";
 
 export class Renderer {
@@ -31,13 +31,13 @@ export class Renderer {
     this.paintMinimap(ctx);
   }
 
-  paintTerrain(terrain: Terrain, viewport: Viewport, ctx: CanvasRenderingContext2D, zoomFactor: number) {
+  paintTerrain(terrain: Polygon[], viewport: Viewport, ctx: CanvasRenderingContext2D, zoomFactor: number) {
     ctx.fillStyle = '#089654ff';
     ctx.lineWidth = 1;
-    ctx.strokeStyle = '#047440ff';
+    ctx.strokeStyle = 'transparent';
 
-    for (let i = 0; i < terrain.landPolygons.length; ++i) {
-      const poly = terrain.landPolygons[i];
+    for (let i = 0; i < terrain.length; ++i) {
+      const poly = terrain[i];
       const vertices = poly.vertices;
 
       const path = new Path2D();

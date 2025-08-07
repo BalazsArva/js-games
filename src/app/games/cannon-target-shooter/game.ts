@@ -6,7 +6,7 @@ import {
   Vector,
   Viewport
 } from "./types";
-import { Terrain } from "./terrain";
+import { Polygon, Terrain } from "./terrain";
 
 function addVectors(a: Vector, b: Vector) {
   return { x: a.x + b.x, y: a.y + b.y };
@@ -54,7 +54,7 @@ export class CannonBall {
 
 export interface ViewportElements {
   cannonBalls: CannonBall[];
-  terrain: Terrain;
+  terrain: Polygon[];
 }
 
 export class Game {
@@ -116,10 +116,14 @@ export class Game {
   }
 
   getViewportElements(viewport: Viewport): ViewportElements {
+    const polys = this.terrain.landPolygons.filter(p =>
+      p.vertices.some(v => this.isPointInViewport(v.x, v.y, viewport))
+    );
+
     // TODO: Improve fitlering - it only returns elements whose center are in the VP, but clipping will occur
     return {
       // TODO: Only return visible terrain parts, maybe delegate filter to Terrain
-      terrain: this.terrain,
+      terrain: polys,
       cannonBalls: this.cannonBalls.filter(cb =>
       (cb.position.x >= viewport.x && cb.position.x <= (viewport.x + viewport.width) &&
         (cb.position.y >= viewport.y && cb.position.y <= (viewport.y + viewport.height)))),
@@ -128,5 +132,11 @@ export class Game {
 
   spawnNewCannonBall(position: Vector, movement: Vector, radius: number) {
     this.cannonBalls.push(new CannonBall(position, radius, movement));
+  }
+
+  private isPointInViewport(x: number, y: number, viewport: Viewport): boolean {
+    return (
+      x >= viewport.x && x <= (viewport.x + viewport.width) &&
+      y >= viewport.y && y <= (viewport.y + viewport.height));
   }
 }
