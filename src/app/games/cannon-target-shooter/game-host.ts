@@ -1,6 +1,6 @@
 import { Game } from "./game";
 import { Renderer } from "./renderer";
-import { BallRadiusInMeter, Command, convertPixelsToMeters, DragScreenCommand, DropCannonBallCommand, ShootCannonBallCommand, Viewport, ZoomInCommand, ZoomOutCommand } from "./types";
+import { BallRadiusInMeter, CheckCollisionCommand, Command, convertPixelsToMeters, DragScreenCommand, DropCannonBallCommand, ShootCannonBallCommand, Viewport, ZoomInCommand, ZoomOutCommand } from "./types";
 
 export class GameHost {
   zoomFactorStep = 0.01;
@@ -46,6 +46,9 @@ export class GameHost {
     else if (command instanceof DropCannonBallCommand) {
       this.dropCannonBall(<DropCannonBallCommand>command);
     }
+    else if (command instanceof CheckCollisionCommand) {
+      this.checkCollision(<CheckCollisionCommand>command);
+    }
   }
 
   private zoomIn() {
@@ -75,7 +78,6 @@ export class GameHost {
   }
 
   private shootCannonBall(command: ShootCannonBallCommand) {
-
     const angleRad = (command.angleDeg * Math.PI) / 180;
     const vX = Math.cos(angleRad) * command.launchPower;
     const vY = Math.sin(angleRad) * command.launchPower;
@@ -85,6 +87,9 @@ export class GameHost {
 
   private dropCannonBall(command: DropCannonBallCommand) {
     this.game.spawnNewCannonBall({ x: command.x, y: command.y }, { x: 0, y: 0 }, BallRadiusInMeter);
+  }
+
+  private checkCollision(command: CheckCollisionCommand) {
   }
 
   private dragScreen(dragScreenCommand: DragScreenCommand) {
@@ -143,7 +148,6 @@ export class GameHost {
 
   renderFrame() {
     const zoomFactor = this.zoomFactor();
-    console.log(zoomFactor)
     const viewport = this.getViewport();
     const viewportElements = this.game.getViewportElements(viewport);
 

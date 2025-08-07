@@ -18,6 +18,10 @@ export class DragScreenCommand implements Command {
   constructor(public deltaXPixels: number, public deltaYPixels: number) {
   }
 }
+export class CheckCollisionCommand implements Command {
+  constructor(public xPixels: number, public yPixels: number) {
+  }
+}
 export class ShootCannonBallCommand implements Command {
   constructor(public angleDeg: number, public launchPower: number) {
 

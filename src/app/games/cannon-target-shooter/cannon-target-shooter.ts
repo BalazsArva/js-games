@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Game } from './game';
 import { GameHost } from './game-host';
 import { Renderer } from './renderer';
-import { ZoomOutCommand, ZoomInCommand, DragScreenCommand, ShootCannonBallCommand, DropCannonBallCommand } from './types';
+import { ZoomOutCommand, ZoomInCommand, DragScreenCommand, ShootCannonBallCommand, DropCannonBallCommand, CheckCollisionCommand } from './types';
 import { Terrain } from './terrain';
 
 @Component({
@@ -41,6 +41,8 @@ export class CannonTargetShooter {
       e.preventDefault();
       return false;
     }
+
+    this.gameHost.sendCommand(new CheckCollisionCommand(e.offsetX, e.offsetY));
 
     return true;
   }
