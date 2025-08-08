@@ -1,6 +1,11 @@
 import { convertLengthInMetersToPixels, Viewport } from "./types";
-import { Triangle, Terrain } from "./terrain";
+import { Triangle } from "./terrain";
 import { CannonBall, ViewportElements } from "./game";
+
+// For debug
+// TODO: Add the logic for segment BB - but we currently don't get the segment
+const renderTriangleBoundingBox = false;
+const renderTerrainSegmentBoundingBox = false;
 
 export class Renderer {
   canvasWidth: number;
@@ -32,27 +37,49 @@ export class Renderer {
   }
 
   paintTerrain(terrain: Triangle[], viewport: Viewport, ctx: CanvasRenderingContext2D, zoomFactor: number) {
-    ctx.fillStyle = '#089654ff';
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = 'yellow';
-
     for (let i = 0; i < terrain.length; ++i) {
+      ctx.fillStyle = '#089654ff';
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = '#0e7043ff';
+
       const triangle = terrain[i];
-      const vertices = [triangle.a, triangle.b, triangle.c];
-
       const path = new Path2D();
-      path.moveTo(
-        convertLengthInMetersToPixels(vertices[0].x - viewport.x, zoomFactor),
-        this.canvasHeight - convertLengthInMetersToPixels(vertices[0].y - viewport.y, zoomFactor));
 
-      for (let j = 1; j < vertices.length; ++j) {
-        path.lineTo(
-          convertLengthInMetersToPixels(vertices[j].x - viewport.x, zoomFactor),
-          this.canvasHeight - convertLengthInMetersToPixels(vertices[j].y - viewport.y, zoomFactor));
-      }
+      path.moveTo(
+        convertLengthInMetersToPixels(triangle.a.x - viewport.x, zoomFactor),
+        this.canvasHeight - convertLengthInMetersToPixels(triangle.a.y - viewport.y, zoomFactor));
+
+      path.lineTo(
+        convertLengthInMetersToPixels(triangle.b.x - viewport.x, zoomFactor),
+        this.canvasHeight - convertLengthInMetersToPixels(triangle.b.y - viewport.y, zoomFactor));
+
+      path.lineTo(
+        convertLengthInMetersToPixels(triangle.c.x - viewport.x, zoomFactor),
+        this.canvasHeight - convertLengthInMetersToPixels(triangle.c.y - viewport.y, zoomFactor));
+
+      path.lineTo(
+        convertLengthInMetersToPixels(triangle.a.x - viewport.x, zoomFactor),
+        this.canvasHeight - convertLengthInMetersToPixels(triangle.a.y - viewport.y, zoomFactor));
 
       ctx.fill(path);
       ctx.stroke(path);
+
+      if (renderTriangleBoundingBox) {
+        const pathBB = new Path2D();
+
+        // TODO: Extract all these conversions somewhere
+        const x = convertLengthInMetersToPixels(triangle.boundingBox.bottomLeft.x - viewport.x, zoomFactor);
+        const y = this.canvasHeight - convertLengthInMetersToPixels(triangle.boundingBox.bottomLeft.y - viewport.y, zoomFactor);
+        const w = convertLengthInMetersToPixels(triangle.boundingBox.width, zoomFactor);
+        const h = convertLengthInMetersToPixels(triangle.boundingBox.height, zoomFactor);
+
+        ctx.fillStyle = 'transparent';
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#40a6ff';
+
+        pathBB.rect(x, y - h, w, h);
+        ctx.stroke(pathBB);
+      }
     }
   }
 

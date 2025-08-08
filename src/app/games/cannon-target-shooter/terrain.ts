@@ -52,6 +52,8 @@ export class BoundingBox {
   private _topLeft: Point;
   private _topRight: Point;
   private _middle: Point;
+  private _width: number;
+  private _height: number;
 
   constructor(x: number, y: number, w: number, h: number) {
     this._bottomLeft = { x: x, y: y };
@@ -59,6 +61,8 @@ export class BoundingBox {
     this._topLeft = { x: x, y: y + h };
     this._topRight = { x: x + w, y: y + h };
     this._middle = { x: x + (w / 2), y: y + (h / 2) };
+    this._width = w;
+    this._height = h;
   }
 
   get bottomLeft(): Point { return this._bottomLeft };
@@ -66,6 +70,8 @@ export class BoundingBox {
   get topLeft(): Point { return this._topLeft };
   get topRight(): Point { return this._topRight };
   get middle(): Point { return this._middle }
+  get width(): number { return this._width };
+  get height(): number { return this._height };
 }
 
 export class Triangle {
@@ -137,8 +143,9 @@ export class Terrain {
   }
 
   public static createRandom(mapWidthMeters: number, mapHeightMeters: number): Terrain {
-    const result = new Terrain(mapWidthMeters, mapHeightMeters);
+    // TODO: Maybe configurable?
     const triangleEdgeLength = 10;
+    const result = new Terrain(mapWidthMeters, mapHeightMeters);
     const triangleHeight = Math.sin(DegToRad(60)) * triangleEdgeLength;
 
     // TODO: With this method, triangles may overflow the segment they are stored in. Clipping may occur.
