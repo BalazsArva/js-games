@@ -68,7 +68,7 @@ export class Triangle {
   }
 
   divide(): Triangle[] {
-    const minimumPointDistance = 1;
+    const minimumPointDistance = 2;
 
     // TODO: Not sure whether to use || or &&. A triangle may have a very long and a very short edge, what to do then?
     if (
@@ -122,8 +122,8 @@ export class Terrain {
         }
       }
       */
-     // TODO: This is still not good: using some radius value (e.g. 4) and clicking near the center of a large (initial size)
-     // triangle does not do anything because it is too far away from any vertex
+      // TODO: This is still not good: using some radius value (e.g. 4) and clicking near the center of a large (initial size)
+      // triangle does not do anything because it is too far away from any vertex
       for (let triangle of segment.iterateTriangles()) {
         if (
           PointDistance(point, triangle.a) < radius ||
@@ -142,12 +142,21 @@ export class Terrain {
         if (splitTriangles.length === 1) {
           // returned the same, wasn't divided any further
 
+          // outside of blast radius, add back to segment as this triangle is not removed from the scene
           if (PointDistance(point, splitTriangles[0].boundingBox.middle) > radius) {
             segment.addTriangles(splitTriangles);
           }
-
         } else {
-          trianglesToSplit.push(...splitTriangles);
+          for (let i = 0; i < splitTriangles.length; ++i) {
+            const newlySplitTrianglePart = splitTriangles[i];
+
+            if (PointDistance(point, newlySplitTrianglePart.boundingBox.middle) > radius) {
+              // TODO: Improve this by adding all 'to-keep' parts at once for a single bounding box recalculation
+              segment.addTriangles([newlySplitTrianglePart]);
+            } else {
+              trianglesToSplit.push(newlySplitTrianglePart);
+            }
+          }
         }
       }
     }
@@ -160,7 +169,7 @@ export class Terrain {
       const segment = this.terrainSegments[key];
 
       //if (IsPointInBoundingBox(point, segment.boundingBox)) {
-        result.push(segment);
+      result.push(segment);
       //}
     }
 
