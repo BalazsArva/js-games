@@ -31,10 +31,10 @@ export class Renderer {
     this.paintMinimap(ctx);
   }
 
-  paintTerrain(terrain: Polygon[], viewport: Viewport, ctx: CanvasRenderingContext2D, zoomFactor: number) {
+  paintTerrain2(terrain: Polygon[], viewport: Viewport, ctx: CanvasRenderingContext2D, zoomFactor: number) {
     ctx.fillStyle = '#089654ff';
     ctx.lineWidth = 1;
-    ctx.strokeStyle = 'transparent';
+    ctx.strokeStyle = 'yellow';
 
     for (let i = 0; i < terrain.length; ++i) {
       const poly = terrain[i];
@@ -54,6 +54,37 @@ export class Renderer {
       ctx.fill(path);
       ctx.stroke(path);
     }
+  }
+
+  paintTerrain(terrain: Polygon[], viewport: Viewport, ctx: CanvasRenderingContext2D, zoomFactor: number) {
+    ctx.fillStyle = '#089654ff';
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'yellow';
+
+    const path = new Path2D();
+
+    for (let i = 0; i < terrain.length; ++i) {
+      const poly = terrain[i];
+      const vertices = poly.vertices;
+
+      const path1 = new Path2D();
+      path1.moveTo(
+        convertLengthInMetersToPixels(vertices[0].x - viewport.x, zoomFactor),
+        this.canvasHeight - convertLengthInMetersToPixels(vertices[0].y - viewport.y, zoomFactor));
+
+      for (let j = 1; j < poly.vertices.length; ++j) {
+        path1.lineTo(
+          convertLengthInMetersToPixels(vertices[j].x - viewport.x, zoomFactor),
+          this.canvasHeight - convertLengthInMetersToPixels(vertices[j].y - viewport.y, zoomFactor));
+      }
+
+      path.addPath(path1);
+
+    }
+
+    
+      ctx.fill(path);
+      ctx.stroke(path);
   }
 
   paintCannonBall(cannonBall: CannonBall, viewport: Viewport, ctx: CanvasRenderingContext2D, zoomFactor: number) {

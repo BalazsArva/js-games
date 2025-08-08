@@ -22,6 +22,11 @@ export class CheckCollisionCommand implements Command {
   constructor(public xPixels: number, public yPixels: number) {
   }
 }
+// TODO: Remove later, for experiments only
+export class DestroyTerrainCommand implements Command {
+  constructor(public xPixels: number, public yPixels: number) {
+  }
+}
 export class ShootCannonBallCommand implements Command {
   constructor(public angleDeg: number, public launchPower: number) {
 

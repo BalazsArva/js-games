@@ -7,19 +7,58 @@ export interface Polygon {
   vertices: Point[];
 }
 
+interface BoundingBox {
+  bottomLeft: Point;
+  topRight: Point;
+}
+
+export interface TerrainSegment {
+  polygons: Polygon[];
+  boundingBox: BoundingBox;
+}
+
+
 export class Terrain {
-  landPolygons: Polygon[] = [];
+  // landPolygons: Polygon[] = [];
+  terrainSegments: Record<string, TerrainSegment> = {};
 
   constructor(public mapWidthMeters: number, public mapHeightMeters: number) {
+  }
 
+  public destroyPolygonsInRadius(x: number, y: number, radius: number) {
+    // TODO: This ignores when radius overflows the segment
+    const segment = this.getOrCreateTerrainSegmentForPosition(x, y);
+
+    segment.polygons = [];
+  }
+
+  private getOrCreateTerrainSegmentForPosition(x: number, y: number) {
+    const segmentSize = 10;
+
+    const segmentIndexX = Math.floor(x / segmentSize);
+    const segmentIndexY = Math.floor(y / segmentSize);
+
+    const key = `[${segmentIndexX};${segmentIndexY}]`;
+
+    this.terrainSegments[key] = this.terrainSegments[key] || {
+      polygons: [],
+      boundingBox: {
+        bottomLeft: { x: segmentIndexX, y: segmentIndexY },
+        topRight: { x: segmentIndexX + segmentSize, y: segmentIndexY + segmentSize },
+      }
+    };
+
+    return this.terrainSegments[key];
   }
 
   public static createRandom(mapWidthMeters: number, mapHeightMeters: number): Terrain {
     const result = new Terrain(mapWidthMeters, mapHeightMeters);
 
+    // TODO: With this method, triangles may overflow the segment they are stored in. Clipping may occur.
     for (let i = 0; i < mapWidthMeters; ++i) {
       for (let j = 0; j < mapHeightMeters; ++j) {
         const triangles: Polygon[] = [];
+        const segment = result.getOrCreateTerrainSegmentForPosition(i, j);
 
         for (let xOffset = 0; xOffset < 1; xOffset += 0.5) {
           for (let yOffset = 0; yOffset < 1; yOffset += 0.5) {
@@ -31,13 +70,14 @@ export class Terrain {
           }
         }
 
-        result.landPolygons.push(...triangles);
+        segment.polygons.push(...triangles);
       }
     }
 
     return result;
   }
 
+  /*
   public static createRandom2(mapWidthMeters: number, mapHeightMeters: number): Terrain {
     const result = new Terrain(mapWidthMeters, mapHeightMeters);
 
@@ -57,29 +97,29 @@ export class Terrain {
 
     return result;
   }
-
-
-  public static createRandom1(mapWidthMeters: number, mapHeightMeters: number): Terrain {
-    const layer1 = Terrain.generateSurface(mapWidthMeters, 3, 50, 100, 1);
-    const layer2 = Terrain.generateSurface(mapWidthMeters, 30, 50, 30, 1);
-    const layer3 = Terrain.generateSurface(mapWidthMeters, 300, 50, 10, 1);
-    const layer4 = Terrain.generateSurface(mapWidthMeters, mapWidthMeters, 50, 1, 1);
-
-    const merged = Terrain.mergeSurfaces(20, [layer1, layer2, layer3, layer4]);
-
-    merged.unshift({ x: 0, y: 0 });
-    merged.push({ x: mapWidthMeters, y: 0 });
-
-    const ground: Polygon = {
-      vertices: merged
-    };
-
-    const result = new Terrain(mapWidthMeters, mapHeightMeters)
-    result.landPolygons.push(ground);
-
-    return result;
-  }
-
+*/
+  /*
+    public static createRandom1(mapWidthMeters: number, mapHeightMeters: number): Terrain {
+      const layer1 = Terrain.generateSurface(mapWidthMeters, 3, 50, 100, 1);
+      const layer2 = Terrain.generateSurface(mapWidthMeters, 30, 50, 30, 1);
+      const layer3 = Terrain.generateSurface(mapWidthMeters, 300, 50, 10, 1);
+      const layer4 = Terrain.generateSurface(mapWidthMeters, mapWidthMeters, 50, 1, 1);
+  
+      const merged = Terrain.mergeSurfaces(20, [layer1, layer2, layer3, layer4]);
+  
+      merged.unshift({ x: 0, y: 0 });
+      merged.push({ x: mapWidthMeters, y: 0 });
+  
+      const ground: Polygon = {
+        vertices: merged
+      };
+  
+      const result = new Terrain(mapWidthMeters, mapHeightMeters)
+      result.landPolygons.push(ground);
+  
+      return result;
+    }
+  */
   private static generateSurface(width: number, numberOfFeaturePoints: number, baseline: number, baselineOffset: number, resolution: number) {
     const featurePoints: Point[] = [{ x: 0, y: baseline }];
     for (let i = 0; i < numberOfFeaturePoints; ++i) {

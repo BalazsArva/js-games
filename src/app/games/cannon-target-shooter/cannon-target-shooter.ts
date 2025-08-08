@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Game } from './game';
 import { GameHost } from './game-host';
 import { Renderer } from './renderer';
-import { ZoomOutCommand, ZoomInCommand, DragScreenCommand, ShootCannonBallCommand, DropCannonBallCommand, CheckCollisionCommand } from './types';
+import { ZoomOutCommand, ZoomInCommand, DragScreenCommand, ShootCannonBallCommand, DropCannonBallCommand, CheckCollisionCommand, DestroyTerrainCommand } from './types';
 import { Terrain } from './terrain';
 
 @Component({
@@ -25,7 +25,7 @@ export class CannonTargetShooter {
 
   ngAfterViewInit() {
     this.gameHost = new GameHost(
-      new Game(Terrain.createRandom(1500, 300)),
+      new Game(Terrain.createRandom(400, 200)),
       new Renderer(this.cannonBallCanvas()?.nativeElement!));
     this.gameHost.startup();
   }
@@ -42,9 +42,15 @@ export class CannonTargetShooter {
       return false;
     }
 
-    this.gameHost.sendCommand(new CheckCollisionCommand(e.offsetX, e.offsetY));
-
     return true;
+  }
+
+  onDoubleClick(e: MouseEvent) {
+    if (!this.gameHost) {
+      return;
+    }
+
+    this.gameHost.sendCommand(new DestroyTerrainCommand(e.offsetX, e.offsetY));
   }
 
   onMouseWheel(e: WheelEvent) {

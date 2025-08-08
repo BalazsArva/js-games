@@ -6,7 +6,7 @@ import {
   Vector,
   Viewport
 } from "./types";
-import { Polygon, Terrain } from "./terrain";
+import { Polygon, Terrain, TerrainSegment } from "./terrain";
 
 function addVectors(a: Vector, b: Vector) {
   return { x: a.x + b.x, y: a.y + b.y };
@@ -116,13 +116,35 @@ export class Game {
   }
 
   getViewportElements(viewport: Viewport): ViewportElements {
-    const polys = this.terrain.landPolygons.filter(p =>
-      p.vertices.some(v => this.isPointInViewport(v.x, v.y, viewport))
-    );
+    const polys: Polygon[] = [];
+
+    for (let key in this.terrain.terrainSegments) {
+      const segment = this.terrain.terrainSegments[key];
+      const boundingBox = segment.boundingBox;
+
+      if (
+        this.isPointInViewport(boundingBox.bottomLeft.x, boundingBox.bottomLeft.y, viewport) ||
+        this.isPointInViewport(boundingBox.bottomLeft.x, boundingBox.topRight.y, viewport) ||
+        this.isPointInViewport(boundingBox.topRight.x, boundingBox.bottomLeft.y, viewport) ||
+        this.isPointInViewport(boundingBox.topRight.x, boundingBox.topRight.y, viewport)) {
+
+        for (let i = 0; i < segment.polygons.length; ++i) {
+          for (let j = 0; j < segment.polygons[i].vertices.length; ++j) {
+            const vertex = segment.polygons[i].vertices[j];
+
+            if (this.isPointInViewport(vertex.x, vertex.y, viewport)) {
+              polys.push(segment.polygons[i]);
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    //console.log(polys.length)
 
     // TODO: Improve fitlering - it only returns elements whose center are in the VP, but clipping will occur
     return {
-      // TODO: Only return visible terrain parts, maybe delegate filter to Terrain
       terrain: polys,
       cannonBalls: this.cannonBalls.filter(cb =>
       (cb.position.x >= viewport.x && cb.position.x <= (viewport.x + viewport.width) &&

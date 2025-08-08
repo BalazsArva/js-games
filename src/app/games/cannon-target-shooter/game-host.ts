@@ -1,6 +1,6 @@
 import { Game } from "./game";
 import { Renderer } from "./renderer";
-import { BallRadiusInMeter, CheckCollisionCommand, Command, convertPixelsToMeters, DragScreenCommand, DropCannonBallCommand, ShootCannonBallCommand, Viewport, ZoomInCommand, ZoomOutCommand } from "./types";
+import { BallRadiusInMeter, CheckCollisionCommand, Command, convertPixelsToMeters, DestroyTerrainCommand, DragScreenCommand, DropCannonBallCommand, ShootCannonBallCommand, Viewport, ZoomInCommand, ZoomOutCommand } from "./types";
 
 export class GameHost {
   zoomFactorStep = 0.01;
@@ -50,6 +50,17 @@ export class GameHost {
     }
     else if (command instanceof CheckCollisionCommand) {
       this.checkCollision(<CheckCollisionCommand>command);
+    }
+    else if (command instanceof DestroyTerrainCommand) {
+      const dcmd = <DestroyTerrainCommand>command;
+
+      const vp = this.getViewport();
+
+      this.game.terrain.destroyPolygonsInRadius(
+        vp.x + convertPixelsToMeters(command.xPixels, this.zoomFactor()),
+        vp.y + convertPixelsToMeters(command.yPixels, this.zoomFactor()),
+        3
+      );
     }
   }
 
