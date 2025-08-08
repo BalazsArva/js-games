@@ -155,6 +155,9 @@ export class GameHost {
       this.game.updateState(elapsedMillis / 1000);
       this.renderFrame();
 
+      // FPS counter
+      // console.log(Math.round(10000 / elapsedMillis) / 10);
+
       this.doGameLoop(now);
     });
   }

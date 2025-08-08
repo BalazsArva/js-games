@@ -43,12 +43,22 @@ export class BoundingBox {
   get height(): number { return this._height };
 }
 
-export function IsBoundingBoxInViewport(boundingBox: BoundingBox, viewport: Viewport): boolean {
-  return (
-    IsPointInViewport(boundingBox.bottomLeft, viewport) ||
-    IsPointInViewport(boundingBox.bottomRight, viewport) ||
-    IsPointInViewport(boundingBox.topLeft, viewport) ||
-    IsPointInViewport(boundingBox.topRight, viewport));
+export type IsBoundingBoxInViewportResult = 'NotInViewport' | 'PartiallyInViewport' | 'CompletelyInViewport';
+export function IsBoundingBoxInViewport(boundingBox: BoundingBox, viewport: Viewport): IsBoundingBoxInViewportResult {
+  const val1 = IsPointInViewport(boundingBox.bottomLeft, viewport);
+  const val2 = IsPointInViewport(boundingBox.bottomRight, viewport);
+  const val3 = IsPointInViewport(boundingBox.topLeft, viewport);
+  const val4 = IsPointInViewport(boundingBox.topRight, viewport);
+
+  if (val1 && val2 && val3 && val4) {
+    return 'CompletelyInViewport';
+  }
+
+  if (val1 || val2 || val3 || val4) {
+    return 'PartiallyInViewport';
+  }
+
+  return 'NotInViewport';
 }
 
 export function IsPointInViewport(point: Point, viewport: Viewport): boolean {

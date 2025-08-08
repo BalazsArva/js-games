@@ -123,7 +123,13 @@ export class Game {
       const segment = this.terrain.terrainSegments[key];
       const segmentBoundingBox = segment.boundingBox;
 
-      if (IsBoundingBoxInViewport(segmentBoundingBox, viewport)) {
+      const isBoundingBoxInViewportResult = IsBoundingBoxInViewport(segmentBoundingBox, viewport);
+
+      if (isBoundingBoxInViewportResult === 'CompletelyInViewport') {
+        for (let triangle of segment.iterateTriangles()) {
+          triangles.push(triangle);
+        }
+      } else if (isBoundingBoxInViewportResult === 'PartiallyInViewport') {
         for (let triangle of segment.iterateTriangles()) {
           if (IsBoundingBoxInViewport(triangle.boundingBox, viewport)) {
             triangles.push(triangle);
