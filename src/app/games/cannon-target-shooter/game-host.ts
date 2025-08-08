@@ -60,7 +60,7 @@ export class GameHost {
           x: vp.x + convertPixelsToMeters(command.xPixels, this.zoomFactor()),
           y: height - (vp.y + convertPixelsToMeters(command.yPixels, this.zoomFactor())),
         },
-        5);
+        4);
     }
   }
 

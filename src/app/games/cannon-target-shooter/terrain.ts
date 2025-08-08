@@ -115,8 +115,20 @@ export class Terrain {
 
       // TODO: Use radius
       // TODO: Use actual containment instead of bounding box containment
+      /*
       for (let triangle of segment.iterateTriangles()) {
         if (IsPointInBoundingBox(point, triangle.boundingBox)) {
+          trianglesToSplit.push(triangle);
+        }
+      }
+      */
+     // TODO: This is still not good: using some radius value (e.g. 4) and clicking near the center of a large (initial size)
+     // triangle does not do anything because it is too far away from any vertex
+      for (let triangle of segment.iterateTriangles()) {
+        if (
+          PointDistance(point, triangle.a) < radius ||
+          PointDistance(point, triangle.b) < radius ||
+          PointDistance(point, triangle.c) < radius) {
           trianglesToSplit.push(triangle);
         }
       }
@@ -147,9 +159,9 @@ export class Terrain {
     for (let key in this.terrainSegments) {
       const segment = this.terrainSegments[key];
 
-      if (IsPointInBoundingBox(point, segment.boundingBox)) {
+      //if (IsPointInBoundingBox(point, segment.boundingBox)) {
         result.push(segment);
-      }
+      //}
     }
 
     return result;
