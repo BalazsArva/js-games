@@ -55,11 +55,12 @@ export class GameHost {
       const height = convertPixelsToMeters(this.renderer.canvasHeight, this.zoomFactor());
       const vp = this.getViewport();
 
-      this.game.terrain.splitTrianglesAtPosition(
-        vp.x + convertPixelsToMeters(command.xPixels, this.zoomFactor()),
-        height - (vp.y + convertPixelsToMeters(command.yPixels, this.zoomFactor())),
-        3
-      );
+      this.game.terrain.damageTerrainAtPosition(
+        {
+          x: vp.x + convertPixelsToMeters(command.xPixels, this.zoomFactor()),
+          y: height - (vp.y + convertPixelsToMeters(command.yPixels, this.zoomFactor())),
+        },
+        5);
     }
   }
 

@@ -1,5 +1,14 @@
+import { Point } from "./types";
+
 export function DegToRad(angleDeg: number) {
   return (angleDeg * Math.PI) / 180;
+}
+
+export function PointDistance(a: Point, b: Point) {
+  const xDist = a.x - b.x;
+  const yDist = a.y - b.y;
+
+  return Math.sqrt(xDist * xDist + yDist * yDist);
 }
 
 export interface LineSegment {
@@ -7,6 +16,7 @@ export interface LineSegment {
   b: Point2D;
 }
 
+// TODO: Consolidate with other Point
 export interface Point2D {
   x: number;
   y: number;

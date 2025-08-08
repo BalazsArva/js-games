@@ -1,4 +1,4 @@
-import { DegToRad } from "./maths";
+import { DegToRad, PointDistance } from "./maths";
 import { BoundingBox, IsPointInBoundingBox, Point } from "./types";
 
 export class TerrainSegment {
@@ -68,6 +68,16 @@ export class Triangle {
   }
 
   divide(): Triangle[] {
+    const minimumPointDistance = 1;
+
+    // TODO: Not sure whether to use || or &&. A triangle may have a very long and a very short edge, what to do then?
+    if (
+      PointDistance(this.a, this.b) <= minimumPointDistance ||
+      PointDistance(this.a, this.c) <= minimumPointDistance ||
+      PointDistance(this.b, this.c) <= minimumPointDistance) {
+      return [this];
+    }
+
     // Halving points' coords
     const abX = (this.a.x + this.b.x) / 2;
     const abY = (this.a.y + this.b.y) / 2;
@@ -81,8 +91,6 @@ export class Triangle {
     const ac: Point = { x: acX, y: acY };
     const bc: Point = { x: bcX, y: bcY };
 
-    // TODO: Check edge length and don't divide if falls under a threshold
-    // Which length? Longest or shortest? Currently regular triangle shape is not enforced and probably shouldn't be
     return [
       new Triangle(this.a, ab, ac),
       new Triangle(this.b, ab, bc),
@@ -96,6 +104,55 @@ export class Terrain {
   terrainSegments: Record<string, TerrainSegment> = {};
 
   constructor(public mapWidthMeters: number, public mapHeightMeters: number) {
+  }
+
+  public damageTerrainAtPosition(point: Point, radius: number) {
+    const terrainSegments = this.getTerrainSegmentsContainingPoint(point);
+
+    for (let i = 0; i < terrainSegments.length; ++i) {
+      const segment = terrainSegments[i];
+      const trianglesToSplit: Triangle[] = [];
+
+      // TODO: Use radius
+      // TODO: Use actual containment instead of bounding box containment
+      for (let triangle of segment.iterateTriangles()) {
+        if (IsPointInBoundingBox(point, triangle.boundingBox)) {
+          trianglesToSplit.push(triangle);
+        }
+      }
+
+      segment.removeTriangles(trianglesToSplit);
+
+      while (trianglesToSplit.length) {
+        const triangleToSplit = trianglesToSplit.shift()!;
+
+        const splitTriangles = triangleToSplit.divide();
+        if (splitTriangles.length === 1) {
+          // returned the same, wasn't divided any further
+
+          if (PointDistance(point, splitTriangles[0].boundingBox.middle) > radius) {
+            segment.addTriangles(splitTriangles);
+          }
+
+        } else {
+          trianglesToSplit.push(...splitTriangles);
+        }
+      }
+    }
+  }
+
+  private getTerrainSegmentsContainingPoint(point: Point): TerrainSegment[] {
+    const result: TerrainSegment[] = [];
+
+    for (let key in this.terrainSegments) {
+      const segment = this.terrainSegments[key];
+
+      if (IsPointInBoundingBox(point, segment.boundingBox)) {
+        result.push(segment);
+      }
+    }
+
+    return result;
   }
 
   public splitTrianglesAtPosition(x: number, y: number, radius: number) {

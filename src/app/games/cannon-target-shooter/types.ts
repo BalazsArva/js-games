@@ -43,8 +43,6 @@ export class BoundingBox {
   get height(): number { return this._height };
 }
 
-
-
 export function IsBoundingBoxInViewport(boundingBox: BoundingBox, viewport: Viewport): boolean {
   return (
     IsPointInViewport(boundingBox.bottomLeft, viewport) ||
