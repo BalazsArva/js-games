@@ -153,21 +153,22 @@ export class GameHost {
       const now = performance.now();
       const elapsedMillis = now - previousTimestamp;
       this.game.updateState(elapsedMillis / 1000);
-      this.renderFrame();
 
-      // FPS counter
-      // console.log(Math.round(10000 / elapsedMillis) / 10);
+      // The 10k and div 10 transforms the value to have 1 decimal digit
+      const fps = Math.round(10000 / elapsedMillis) / 10;
+
+      this.renderFrame(fps);
 
       this.doGameLoop(now);
     });
   }
 
-  renderFrame() {
+  renderFrame(fps: number) {
     const zoomFactor = this.zoomFactor();
     const viewport = this.getViewport();
     const viewportElements = this.game.getViewportElements(viewport);
 
-    this.renderer.render(viewport, viewportElements, zoomFactor);
+    this.renderer.render(viewport, viewportElements, zoomFactor, fps);
   }
 
   getViewport(): Viewport {

@@ -16,7 +16,7 @@ export class Renderer {
     this.canvasHeight = canvas.height;
   }
 
-  public render(viewport: Viewport, viewportElements: ViewportElements, zoomFactor: number) {
+  public render(viewport: Viewport, viewportElements: ViewportElements, zoomFactor: number, fps: number) {
     const ctx = this.canvas.getContext('2d');
     if (!ctx) {
       console.error('No context found for drawing');
@@ -34,6 +34,14 @@ export class Renderer {
     }
 
     this.paintMinimap(ctx);
+    this.paintFps(ctx, fps);
+  }
+
+  paintFps(ctx: CanvasRenderingContext2D, fps: number) {
+    ctx.lineWidth = .5;
+    ctx.strokeStyle = '#000000';
+
+    ctx.strokeText(`${fps} FPS`, 10, 20);
   }
 
   paintTerrain(terrain: Triangle[], viewport: Viewport, ctx: CanvasRenderingContext2D, zoomFactor: number) {
