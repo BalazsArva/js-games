@@ -127,6 +127,13 @@ export class Terrain {
       const item = trianglesToSplit[i];
 
       item.segment.removeTriangles(item.triangles);
+
+      for (let j = 0; j < item.triangles.length; ++j) {
+        const triangle = item.triangles[j];
+
+        // TODO: Maybe the new triangles don't all belong to the original terrain segment
+        item.segment.addTriangles(triangle.divide());
+      }
     }
   }
 
