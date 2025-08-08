@@ -4,9 +4,10 @@ import {
   GravityAcceleration,
   IronDensity,
   Vector,
-  Viewport
+  Viewport,
+  IsBoundingBoxInViewport
 } from "./types";
-import { BoundingBox, Terrain, Point, Triangle } from "./terrain";
+import { Terrain, Triangle } from "./terrain";
 
 function addVectors(a: Vector, b: Vector) {
   return { x: a.x + b.x, y: a.y + b.y };
@@ -122,9 +123,9 @@ export class Game {
       const segment = this.terrain.terrainSegments[key];
       const segmentBoundingBox = segment.boundingBox;
 
-      if (this.isBoundingBoxInViewport(segmentBoundingBox, viewport)) {
+      if (IsBoundingBoxInViewport(segmentBoundingBox, viewport)) {
         for (let triangle of segment.iterateTriangles()) {
-          if (this.isBoundingBoxInViewport(triangle.boundingBox, viewport)) {
+          if (IsBoundingBoxInViewport(triangle.boundingBox, viewport)) {
             triangles.push(triangle);
           }
         }
@@ -142,19 +143,5 @@ export class Game {
 
   spawnNewCannonBall(position: Vector, movement: Vector, radius: number) {
     this.cannonBalls.push(new CannonBall(position, radius, movement));
-  }
-
-  private isBoundingBoxInViewport(boundingBox: BoundingBox, viewport: Viewport): boolean {
-    return (
-      this.isPointInViewport(boundingBox.bottomLeft, viewport) ||
-      this.isPointInViewport(boundingBox.bottomRight, viewport) ||
-      this.isPointInViewport(boundingBox.topLeft, viewport) ||
-      this.isPointInViewport(boundingBox.topRight, viewport));
-  }
-
-  private isPointInViewport(point: Point, viewport: Viewport): boolean {
-    return (
-      point.x >= viewport.x && point.x <= (viewport.x + viewport.width) &&
-      point.y >= viewport.y && point.y <= (viewport.y + viewport.height));
   }
 }

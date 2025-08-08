@@ -1,9 +1,5 @@
 import { DegToRad } from "./maths";
-
-export interface Point {
-  x: number;
-  y: number;
-}
+import { BoundingBox, IsPointInBoundingBox, Point } from "./types";
 
 export class TerrainSegment {
   private _boundingBox: BoundingBox;
@@ -21,6 +17,12 @@ export class TerrainSegment {
 
   addTriangles(triangles: Triangle[]) {
     this.triangles.push(...triangles);
+    this._boundingBox = this.computeBoundingBox();
+  }
+
+  removeTriangles(triangles: Triangle[]) {
+    // TODO: Need to do this faster, maybe generate a triangle id and use a lookup
+    this.triangles = this.triangles.filter(t => !triangles.includes(t));
     this._boundingBox = this.computeBoundingBox();
   }
 
@@ -46,36 +48,7 @@ export class TerrainSegment {
   }
 }
 
-export class BoundingBox {
-  private _bottomLeft: Point;
-  private _bottomRight: Point;
-  private _topLeft: Point;
-  private _topRight: Point;
-  private _middle: Point;
-  private _width: number;
-  private _height: number;
-
-  constructor(x: number, y: number, w: number, h: number) {
-    this._bottomLeft = { x: x, y: y };
-    this._bottomRight = { x: x + w, y: y };
-    this._topLeft = { x: x, y: y + h };
-    this._topRight = { x: x + w, y: y + h };
-    this._middle = { x: x + (w / 2), y: y + (h / 2) };
-    this._width = w;
-    this._height = h;
-  }
-
-  get bottomLeft(): Point { return this._bottomLeft };
-  get bottomRight(): Point { return this._bottomRight };
-  get topLeft(): Point { return this._topLeft };
-  get topRight(): Point { return this._topRight };
-  get middle(): Point { return this._middle }
-  get width(): number { return this._width };
-  get height(): number { return this._height };
-}
-
 export class Triangle {
-
   private _boundingBox: BoundingBox;
 
   constructor(public a: Point, public b: Point, public c: Point) {
@@ -125,8 +98,36 @@ export class Terrain {
   constructor(public mapWidthMeters: number, public mapHeightMeters: number) {
   }
 
-  public destroyPolygonsInRadius(x: number, y: number, radius: number) {
+  public splitTrianglesAtPosition(x: number, y: number, radius: number) {
+    const trianglesToSplit: { triangles: Triangle[], segment: TerrainSegment }[] = [];
 
+    for (let key in this.terrainSegments) {
+      const segment = this.terrainSegments[key];
+      const item = {
+        triangles: <Triangle[]>[],
+        segment,
+      };
+
+      if (!IsPointInBoundingBox({ x, y }, segment.boundingBox)) {
+        continue;
+      }
+
+      for (let triangle of segment.iterateTriangles()) {
+        if (IsPointInBoundingBox({ x, y }, triangle.boundingBox)) {
+          item.triangles.push(triangle);
+        }
+      }
+
+      if (item.triangles.length) {
+        trianglesToSplit.push(item);
+      }
+    }
+
+    for (let i = 0; i < trianglesToSplit.length; ++i) {
+      const item = trianglesToSplit[i];
+
+      item.segment.removeTriangles(item.triangles);
+    }
   }
 
   private getOrCreateTerrainSegmentForPosition(point: Point) {

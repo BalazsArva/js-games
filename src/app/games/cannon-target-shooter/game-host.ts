@@ -52,13 +52,12 @@ export class GameHost {
       this.checkCollision(<CheckCollisionCommand>command);
     }
     else if (command instanceof DestroyTerrainCommand) {
-      const dcmd = <DestroyTerrainCommand>command;
-
+      const height = convertPixelsToMeters(this.renderer.canvasHeight, this.zoomFactor());
       const vp = this.getViewport();
 
-      this.game.terrain.destroyPolygonsInRadius(
+      this.game.terrain.splitTrianglesAtPosition(
         vp.x + convertPixelsToMeters(command.xPixels, this.zoomFactor()),
-        vp.y + convertPixelsToMeters(command.yPixels, this.zoomFactor()),
+        height - (vp.y + convertPixelsToMeters(command.yPixels, this.zoomFactor())),
         3
       );
     }
