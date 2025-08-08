@@ -1,3 +1,7 @@
+export function DegToRad(angleDeg: number) {
+  return (angleDeg * Math.PI) / 180;
+}
+
 export interface LineSegment {
   a: Point2D;
   b: Point2D;
