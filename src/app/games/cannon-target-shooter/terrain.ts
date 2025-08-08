@@ -234,29 +234,37 @@ export class Terrain {
     const result = new Terrain(mapWidthMeters, mapHeightMeters);
     const triangleHeight = Math.sin(DegToRad(60)) * triangleEdgeLength;
 
+    // TODO: Later this shouldn't be a static value
+    const rowCount = 5;
+
     // TODO: With this method, triangles may overflow the segment they are stored in. Clipping may occur.
     for (let i = 0; i < mapWidthMeters / triangleEdgeLength; ++i) {
-      const triangle1 = new Triangle(
-        { x: i * triangleEdgeLength, y: 0 },
-        { x: (i + 1) * triangleEdgeLength, y: 0 },
-        { x: (i * triangleEdgeLength) + (triangleEdgeLength / 2), y: triangleHeight });
+      for (let j = 0; j < rowCount; ++j) {
+        const rowBottom = j * triangleHeight;
+        const rowTop = (j + 1) * triangleHeight;
 
-      const triangle2 = new Triangle(
-        { x: (i * triangleEdgeLength) - (triangleEdgeLength / 2), y: triangleHeight },
-        { x: i * triangleEdgeLength, y: 0 },
-        { x: (i * triangleEdgeLength) + (triangleEdgeLength / 2), y: triangleHeight });
+        const triangle1 = new Triangle(
+          { x: i * triangleEdgeLength, y: rowBottom },
+          { x: (i + 1) * triangleEdgeLength, y: rowBottom },
+          { x: (i * triangleEdgeLength) + (triangleEdgeLength / 2), y: rowTop });
 
-      const segment1 = result.getOrCreateTerrainSegmentForPosition(triangle1.boundingBox.middle);
-      const segment2 = result.getOrCreateTerrainSegmentForPosition(triangle2.boundingBox.middle);
+        const triangle2 = new Triangle(
+          { x: (i * triangleEdgeLength) - (triangleEdgeLength / 2), y: rowTop },
+          { x: i * triangleEdgeLength, y: rowBottom },
+          { x: (i * triangleEdgeLength) + (triangleEdgeLength / 2), y: rowTop });
 
-      // TODO: May be able to simplify this by generating all triangles upfront, then categorizing them into their respective segments.
-      // Then only 1 compute of bounding box per segment happens.
-      if (segment1 === segment2) {
-        segment1.addTriangles([triangle1, triangle2]);
-      }
-      else {
-        segment1.addTriangles([triangle1]);
-        segment2.addTriangles([triangle2]);
+        const segment1 = result.getOrCreateTerrainSegmentForPosition(triangle1.boundingBox.middle);
+        const segment2 = result.getOrCreateTerrainSegmentForPosition(triangle2.boundingBox.middle);
+
+        // TODO: May be able to simplify this by generating all triangles upfront, then categorizing them into their respective segments.
+        // Then only 1 compute of bounding box per segment happens.
+        if (segment1 === segment2) {
+          segment1.addTriangles([triangle1, triangle2]);
+        }
+        else {
+          segment1.addTriangles([triangle1]);
+          segment2.addTriangles([triangle2]);
+        }
       }
     }
 
