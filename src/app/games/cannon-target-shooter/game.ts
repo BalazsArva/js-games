@@ -106,6 +106,12 @@ export class Game {
         newPositionVector.y < (-2 * cannonBall.radius) ||
         newPositionVector.y > (this.terrain.mapHeightMeters + 2 * cannonBall.radius)) {
         this.cannonBalls.splice(i, 1);
+      } else if (this.terrain.pointCollidesWithTerrain({ x: newPositionVector.x, y: newPositionVector.y })) {
+
+        // TODO: Maybe instead of radius, pass the energy to the destruction function. Each triangle destroyed should consume some amount of energy?
+        console.log(`COLLISION - E=${cannonBall.kineticEnergy}`)
+        this.cannonBalls.splice(i, 1);
+        this.terrain.damageTerrainAtPosition({ x: newPositionVector.x, y: newPositionVector.y }, 1.55 * (cannonBall.kineticEnergy / (10000000)))
       }
     }
   }

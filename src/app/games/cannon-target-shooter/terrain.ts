@@ -101,9 +101,28 @@ export class Triangle {
 }
 
 export class Terrain {
+  // TODO: The 'string' key is not really ideal due to the fact that triangle splitting may cause some new triangles to fall outside of the original bounding box.
+  // Maybe it would be better to just remove these keys and use a hierarchical segmentation instead (segments may themselves contain smaller segments)
   terrainSegments: Record<string, TerrainSegment> = {};
 
   constructor(public mapWidthMeters: number, public mapHeightMeters: number) {
+  }
+
+  public pointCollidesWithTerrain(point: Point): boolean {
+    for (let key in this.terrainSegments) {
+      const segment = this.terrainSegments[key];
+
+      if (IsPointInBoundingBox(point, segment.boundingBox)) {
+        for (let triangle of segment.iterateTriangles()) {
+          if (IsPointInBoundingBox(point, triangle.boundingBox)) {
+            // TODO: Use actual collision not just bounding box contains check
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
   }
 
   public damageTerrainAtPosition(point: Point, radius: number) {
@@ -144,8 +163,8 @@ export class Terrain {
           findLineCircleIntersection({ a: triangle.b, b: triangle.c }, circle).type === 'Intersects' ||
           findLineCircleIntersection({ a: triangle.c, b: triangle.a }, circle).type === 'Intersects') {
 
-            // TODO: Divided triangles may not fall to the same segment as their origins
-            // (currently segment is determined by the bounding box center point, which is different for newer smaller triangles)
+          // TODO: Divided triangles may not fall to the same segment as their origins
+          // (currently segment is determined by the bounding box center point, which is different for newer smaller triangles)
           const splitTriangles = triangle.divide();
           if (splitTriangles.length > 1) {
             // When =1, divide returned the same, it cannot be divided any further
