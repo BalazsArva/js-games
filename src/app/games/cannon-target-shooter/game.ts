@@ -76,26 +76,22 @@ export class Game {
       const cannonBall = this.cannonBalls[i];
 
       let newMovementVector = addVectors(cannonBall.movementVector, gravityAccelerationOverElapsedTime);
-      // Drag
+
+      // air resistance
       const dragDeceleration = cannonBall.dragDeceleration;
       const angleRad = cannonBall.movementVector.x === 0
         ? (Math.PI / 2) * Math.sign(cannonBall.movementVector.y)
         : Math.atan(cannonBall.movementVector.y / cannonBall.movementVector.x);
 
-      const angleDeg = RadToDeg(angleRad);
-
-      // Angle opposite to movement
-      // TODO: Try not converting to deg, do the additions using rad
-      const dragDecelerationAngle = angleDeg + 180;
-      const dragDecelerationAngleRad = DegToRad(dragDecelerationAngle);
-
+      // Angle opposite to movement (PI rad = 180 deg)
+      const dragDecelerationAngleRad = angleRad + Math.PI;
       const dragDecelerationX = Math.cos(dragDecelerationAngleRad) * dragDeceleration;
       const dragDecelerationY = Math.sin(dragDecelerationAngleRad) * dragDeceleration;
 
       const dragDecelerationVector: Vector = { x: dragDecelerationX, y: dragDecelerationY };
 
       newMovementVector = addVectors(newMovementVector, multiplyVectorByScalar(dragDecelerationVector, elapsedSeconds));
-      // end of drag
+      // end of air resistance
 
       const newPositionVector = addVectors(
         cannonBall.position,
