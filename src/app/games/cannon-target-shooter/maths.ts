@@ -97,7 +97,38 @@ export function findQuadraticEquationSolutions(a: number, b: number, c: number):
   };
 }
 
-// TODO: When returning 'Intersects', need to check if the resulting points fall within the designated segment of the line.
+export function transformToNoIntersectionIfPointsFallOutsideOfDelimiters(line: LineSegment, result: LineCircleIntersectionResult): LineCircleIntersectionResult {
+
+  if (result.type === 'NoIntersection') {
+    return result;
+  }
+
+  const intersection = result.intersection!;
+
+  const lineMinY = Math.min(line.a.y, line.b.y);
+  const lineMaxY = Math.max(line.a.y, line.b.y);
+
+  const lineMinX = Math.min(line.a.x, line.b.x);
+  const lineMaxX = Math.max(line.a.x, line.b.x);
+
+  if (
+    (
+      intersection.p1.x >= lineMinX &&
+      intersection.p1.x <= lineMaxX &&
+      intersection.p1.y >= lineMinY &&
+      intersection.p1.y <= lineMaxY) ||
+    (
+      intersection.p2.x >= lineMinX &&
+      intersection.p2.x <= lineMaxX &&
+      intersection.p2.y >= lineMinY &&
+      intersection.p2.y <= lineMaxY
+    )) {
+    return result;
+  }
+
+  return { type: 'NoIntersection' };
+}
+
 export function findLineCircleIntersection(line: LineSegment, circle: Circle): LineCircleIntersectionResult {
   const lineEqParams = findEquationOfLine(line);
 
@@ -106,22 +137,22 @@ export function findLineCircleIntersection(line: LineSegment, circle: Circle): L
     const diff = line.a.x - circle.center.x;
     if (diff === circle.radius) {
       // line touches right side of circle
-      return {
+      const p1 = { x: circle.center.x + circle.radius, y: circle.center.y };
+      const p2 = { x: circle.center.x + circle.radius, y: circle.center.y };
+
+      return transformToNoIntersectionIfPointsFallOutsideOfDelimiters(line, {
         type: 'Touches',
-        intersection: {
-          p1: { x: circle.center.x + circle.radius, y: circle.center.y },
-          p2: { x: circle.center.x + circle.radius, y: circle.center.y },
-        },
-      };
+        intersection: { p1, p2, },
+      });
     } else if (-diff === circle.radius) {
       // line touches left side of circle
-      return {
+      const p1 = { x: circle.center.x - circle.radius, y: circle.center.y };
+      const p2 = { x: circle.center.x - circle.radius, y: circle.center.y };
+
+      return transformToNoIntersectionIfPointsFallOutsideOfDelimiters(line, {
         type: 'Touches',
-        intersection: {
-          p1: { x: circle.center.x - circle.radius, y: circle.center.y },
-          p2: { x: circle.center.x - circle.radius, y: circle.center.y },
-        },
-      };
+        intersection: { p1, p2, },
+      });
     } else if (diff < circle.radius || -diff < circle.radius) {
       // intersects 
       // 'y' values can be found by substituting known values into circle equation which yields:
@@ -135,13 +166,13 @@ export function findLineCircleIntersection(line: LineSegment, circle: Circle): L
 
       const quadraticSolutions = findQuadraticEquationSolutions(quadraticEqParamA, quadraticEqParamB, quadraticEqParamC);
 
-      return {
+      const p1 = { x: circle.center.x + diff, y: quadraticSolutions.result1 };
+      const p2 = { x: circle.center.x + diff, y: quadraticSolutions.result2 };
+
+      return transformToNoIntersectionIfPointsFallOutsideOfDelimiters(line, {
         type: 'Intersects',
-        intersection: {
-          p1: { x: circle.center.x + diff, y: quadraticSolutions.result1 },
-          p2: { x: circle.center.x + diff, y: quadraticSolutions.result2 },
-        },
-      }
+        intersection: { p1, p2, },
+      });
     } else {
       // does not touch/intersect
       return { type: 'NoIntersection' };
@@ -191,22 +222,22 @@ export function findLineCircleIntersection(line: LineSegment, circle: Circle): L
   const y2 = lineEqParams.m * quadraticSolutionX2 + lineEqParams.b;
 
   if (quadraticSolutionX1 === quadraticSolutionX2) {
-    return {
-      type: 'Touches',
-      intersection: {
-        p1: { x: quadraticSolutionX1, y: y1 },
-        p2: { x: quadraticSolutionX1, y: y1 },
-      },
-    };
-  }
+    const p1 = { x: quadraticSolutionX1, y: y1 };
+    const p2 = { x: quadraticSolutionX1, y: y1 };
 
-  return {
-    type: 'Intersects',
-    intersection: {
-      p1: { x: quadraticSolutionX1, y: y1 },
-      p2: { x: quadraticSolutionX2, y: y2 },
-    },
-  };
+    return transformToNoIntersectionIfPointsFallOutsideOfDelimiters(line, {
+      type: 'Touches',
+      intersection: { p1, p2, },
+    });
+  } else {
+    const p1 = { x: quadraticSolutionX1, y: y1 };
+    const p2 = { x: quadraticSolutionX2, y: y2 };
+
+    return transformToNoIntersectionIfPointsFallOutsideOfDelimiters(line, {
+      type: 'Intersects',
+      intersection: { p1, p2, },
+    });
+  }
 }
 
 export function findLineIntersection(line1: LineSegment, line2: LineSegment): LineIntersectionResult {
