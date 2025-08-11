@@ -75,6 +75,23 @@ export function IsPointInBoundingBox(point: Point, boundingBox: BoundingBox): bo
     point.y <= boundingBox.topLeft.y);
 }
 
+export function BoundingBoxesIntersect(boundingBox1: BoundingBox, boundingBox2: BoundingBox): boolean {
+  // TODO: Not 100% sure about this logic, recheck (special cases: overlap in '+' shape, complete containment, completely separate, touching each other, corners touch)
+  const smallerLeftX = Math.min(boundingBox1.bottomLeft.x, boundingBox2.bottomLeft.x);
+  const largerRightX = Math.max(boundingBox1.bottomRight.x, boundingBox2.bottomRight.x);
+
+  const smallerBottomY = Math.min(boundingBox1.bottomLeft.y, boundingBox2.bottomLeft.y);
+  const largerTopY = Math.max(boundingBox1.topLeft.y, boundingBox2.topLeft.y);
+
+  const diffX = largerRightX - smallerLeftX;
+  const diffY = largerTopY - smallerBottomY;
+
+  const totalWidth = boundingBox1.width + boundingBox2.width;
+  const totalHeight = boundingBox1.height + boundingBox2.height;
+
+  return (diffX < totalWidth) && (diffY < totalHeight);
+}
+
 export interface Command { }
 
 export class ZoomInCommand implements Command { }
