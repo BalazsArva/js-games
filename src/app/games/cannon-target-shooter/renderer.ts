@@ -72,6 +72,8 @@ export class Renderer {
       ctx.fill(path);
       ctx.stroke(path);
 
+      // TODO: This should be done after all of the triangles are rendered because triangles rendered after a bounding box
+      // will hide the bounding box if they occupy part of the same space
       if (renderTriangleBoundingBox) {
         const pathBB = new Path2D();
 
