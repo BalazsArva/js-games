@@ -8,6 +8,7 @@ import {
   IsBoundingBoxInViewport
 } from "./types";
 import { Terrain, Triangle } from "./terrain";
+import { DegToRad, RadToDeg } from "./maths";
 
 function addVectors(a: Vector, b: Vector) {
   return { x: a.x + b.x, y: a.y + b.y };
@@ -83,12 +84,12 @@ export class Game {
           ? (Math.PI / 2) * Math.sign(cannonBall.movementVector.y)
           : Math.atan(cannonBall.movementVector.y / cannonBall.movementVector.x);
 
-        const angleDeg = (angleRad / Math.PI) * 180
+        const angleDeg = RadToDeg(angleRad);
 
         // Angle opposite to movement
         // TODO: Try not converting to deg, do the additions using rad
         const dragDecelerationAngle = angleDeg + 180;
-        const dragDecelerationAngleRad = (dragDecelerationAngle * Math.PI) / 180;
+        const dragDecelerationAngleRad = DegToRad(dragDecelerationAngle);
 
         const dragDecelerationX = Math.cos(dragDecelerationAngleRad) * dragDeceleration;
         const dragDecelerationY = Math.sin(dragDecelerationAngleRad) * dragDeceleration;

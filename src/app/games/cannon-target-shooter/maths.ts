@@ -4,6 +4,10 @@ export function DegToRad(angleDeg: number) {
   return (angleDeg * Math.PI) / 180;
 }
 
+export function RadToDeg(angleRad: number) {
+  return (angleRad / Math.PI) * 180;
+}
+
 export function PointDistance(a: Point, b: Point) {
   const xDist = a.x - b.x;
   const yDist = a.y - b.y;
