@@ -157,7 +157,9 @@ export function findLineCircleIntersection(line: LineSegment, circle: Circle): L
         type: 'Touches',
         intersection: { p1, p2, },
       });
-    } else if (diff < circle.radius || -diff < circle.radius) {
+    } else if (
+      (diff >= 0 && diff < circle.radius) ||
+      (diff <= 0 && -diff < circle.radius)) {
       // intersects 
       // 'y' values can be found by substituting known values into circle equation which yields:
       //
