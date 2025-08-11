@@ -76,29 +76,26 @@ export class Game {
       const cannonBall = this.cannonBalls[i];
 
       let newMovementVector = addVectors(cannonBall.movementVector, gravityAccelerationOverElapsedTime);
+      // Drag
+      const dragDeceleration = cannonBall.dragDeceleration;
+      const angleRad = cannonBall.movementVector.x === 0
+        ? (Math.PI / 2) * Math.sign(cannonBall.movementVector.y)
+        : Math.atan(cannonBall.movementVector.y / cannonBall.movementVector.x);
 
-      // TODO: Experiment only
-      if (i === 0) {
-        const dragDeceleration = cannonBall.dragDeceleration;
-        const angleRad = cannonBall.movementVector.x === 0
-          ? (Math.PI / 2) * Math.sign(cannonBall.movementVector.y)
-          : Math.atan(cannonBall.movementVector.y / cannonBall.movementVector.x);
+      const angleDeg = RadToDeg(angleRad);
 
-        const angleDeg = RadToDeg(angleRad);
+      // Angle opposite to movement
+      // TODO: Try not converting to deg, do the additions using rad
+      const dragDecelerationAngle = angleDeg + 180;
+      const dragDecelerationAngleRad = DegToRad(dragDecelerationAngle);
 
-        // Angle opposite to movement
-        // TODO: Try not converting to deg, do the additions using rad
-        const dragDecelerationAngle = angleDeg + 180;
-        const dragDecelerationAngleRad = DegToRad(dragDecelerationAngle);
+      const dragDecelerationX = Math.cos(dragDecelerationAngleRad) * dragDeceleration;
+      const dragDecelerationY = Math.sin(dragDecelerationAngleRad) * dragDeceleration;
 
-        const dragDecelerationX = Math.cos(dragDecelerationAngleRad) * dragDeceleration;
-        const dragDecelerationY = Math.sin(dragDecelerationAngleRad) * dragDeceleration;
+      const dragDecelerationVector: Vector = { x: dragDecelerationX, y: dragDecelerationY };
 
-        const dragDecelerationVector: Vector = { x: dragDecelerationX, y: dragDecelerationY };
-
-        newMovementVector = addVectors(newMovementVector, multiplyVectorByScalar(dragDecelerationVector, elapsedSeconds));
-      }
-      // End of Experiment
+      newMovementVector = addVectors(newMovementVector, multiplyVectorByScalar(dragDecelerationVector, elapsedSeconds));
+      // end of drag
 
       const newPositionVector = addVectors(
         cannonBall.position,
