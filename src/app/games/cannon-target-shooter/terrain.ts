@@ -157,56 +157,6 @@ export class Terrain {
         }
       }
     }
-
-    /*
-    for (let i = 0; i < terrainSegments.length; ++i) {
-      const segment = terrainSegments[i];
-      const trianglesToSplit: Triangle[] = [];
-
-      for (let triangle of segment.iterateTriangles()) {
-
-        if (
-          // Distance to the vertices cover the case when the triangle is entirely covered by the circle (no edge intersection)
-          PointDistance(triangle.a, point) < radius ||
-          PointDistance(triangle.b, point) < radius ||
-          PointDistance(triangle.c, point) < radius ||
-
-          // When circle perimeter cuts through the triangle's edge
-          findLineCircleIntersection({ a: triangle.a, b: triangle.b }, circle).type === 'Intersects' ||
-          findLineCircleIntersection({ a: triangle.b, b: triangle.c }, circle).type === 'Intersects' ||
-          findLineCircleIntersection({ a: triangle.c, b: triangle.a }, circle).type === 'Intersects') {
-          trianglesToSplit.push(triangle);
-        }
-      }
-
-      segment.removeTriangles(trianglesToSplit);
-
-      while (trianglesToSplit.length) {
-        const triangleToSplit = trianglesToSplit.shift()!;
-
-        const splitTriangles = triangleToSplit.divide();
-        if (splitTriangles.length === 1) {
-          // returned the same, wasn't divided any further
-
-          // outside of blast radius, add back to segment as this triangle is not removed from the scene
-          if (PointDistance(point, splitTriangles[0].boundingBox.middle) > radius) {
-            segment.addTriangles(splitTriangles);
-          }
-        } else {
-          for (let i = 0; i < splitTriangles.length; ++i) {
-            const newlySplitTrianglePart = splitTriangles[i];
-
-            if (PointDistance(point, newlySplitTrianglePart.boundingBox.middle) > radius) {
-              // TODO: Improve this by adding all 'to-keep' parts at once for a single bounding box recalculation
-              segment.addTriangles([newlySplitTrianglePart]);
-            } else {
-              trianglesToSplit.push(newlySplitTrianglePart);
-            }
-          }
-        }
-      }
-    }
-    */
   }
 
   private getTerrainSegmentsContainingPoint(point: Point): TerrainSegment[] {
