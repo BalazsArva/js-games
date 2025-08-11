@@ -107,13 +107,12 @@ export class Terrain {
   }
 
   public damageTerrainAtPosition(point: Point, radius: number) {
-    const terrainSegments = this.getTerrainSegmentsContainingPoint(point);
     const radiusSizedBoundingBoxOfPoint = new BoundingBox(point.x - radius, point.y - radius, 2 * radius, 2 * radius);
 
     const circle: Circle = { center: point, radius: radius };
 
-    for (let i = 0; i < terrainSegments.length; ++i) {
-      const segment = terrainSegments[i];
+    for (let key in this.terrainSegments) {
+      const segment = this.terrainSegments[key];
 
       if (!BoundingBoxesIntersect(radiusSizedBoundingBoxOfPoint, segment.boundingBox)) {
         continue;
@@ -145,6 +144,8 @@ export class Terrain {
           findLineCircleIntersection({ a: triangle.b, b: triangle.c }, circle).type === 'Intersects' ||
           findLineCircleIntersection({ a: triangle.c, b: triangle.a }, circle).type === 'Intersects') {
 
+            // TODO: Divided triangles may not fall to the same segment as their origins
+            // (currently segment is determined by the bounding box center point, which is different for newer smaller triangles)
           const splitTriangles = triangle.divide();
           if (splitTriangles.length > 1) {
             // When =1, divide returned the same, it cannot be divided any further
@@ -155,59 +156,6 @@ export class Terrain {
             splitList.push(...splitTriangles);
           }
         }
-      }
-    }
-  }
-
-  private getTerrainSegmentsContainingPoint(point: Point): TerrainSegment[] {
-    const result: TerrainSegment[] = [];
-
-    for (let key in this.terrainSegments) {
-      const segment = this.terrainSegments[key];
-
-      //if (IsPointInBoundingBox(point, segment.boundingBox)) {
-      result.push(segment);
-      //}
-    }
-
-    return result;
-  }
-
-  public splitTrianglesAtPosition(x: number, y: number, radius: number) {
-    const trianglesToSplit: { triangles: Triangle[], segment: TerrainSegment }[] = [];
-
-    for (let key in this.terrainSegments) {
-      const segment = this.terrainSegments[key];
-      const item = {
-        triangles: <Triangle[]>[],
-        segment,
-      };
-
-      if (!IsPointInBoundingBox({ x, y }, segment.boundingBox)) {
-        continue;
-      }
-
-      for (let triangle of segment.iterateTriangles()) {
-        if (IsPointInBoundingBox({ x, y }, triangle.boundingBox)) {
-          item.triangles.push(triangle);
-        }
-      }
-
-      if (item.triangles.length) {
-        trianglesToSplit.push(item);
-      }
-    }
-
-    for (let i = 0; i < trianglesToSplit.length; ++i) {
-      const item = trianglesToSplit[i];
-
-      item.segment.removeTriangles(item.triangles);
-
-      for (let j = 0; j < item.triangles.length; ++j) {
-        const triangle = item.triangles[j];
-
-        // TODO: Maybe the new triangles don't all belong to the original terrain segment
-        item.segment.addTriangles(triangle.divide());
       }
     }
   }
@@ -234,7 +182,6 @@ export class Terrain {
     // TODO: Later this shouldn't be a static value
     const rowCount = 5;
 
-    // TODO: With this method, triangles may overflow the segment they are stored in. Clipping may occur.
     for (let i = 0; i < mapWidthMeters / triangleEdgeLength; ++i) {
       for (let j = 0; j < rowCount; ++j) {
         const rowBottom = j * triangleHeight;
