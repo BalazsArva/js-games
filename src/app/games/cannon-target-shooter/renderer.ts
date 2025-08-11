@@ -4,7 +4,7 @@ import { CannonBall, ViewportElements } from "./game";
 
 // For debug
 // TODO: Add the logic for segment BB - but we currently don't get the segment
-const renderTriangleBoundingBox = false;
+const renderTriangleBoundingBox = true;
 const renderTerrainSegmentBoundingBox = false;
 
 export class Renderer {
@@ -71,10 +71,11 @@ export class Renderer {
 
       ctx.fill(path);
       ctx.stroke(path);
+    }
 
-      // TODO: This should be done after all of the triangles are rendered because triangles rendered after a bounding box
-      // will hide the bounding box if they occupy part of the same space
-      if (renderTriangleBoundingBox) {
+    if (renderTriangleBoundingBox) {
+      for (let i = 0; i < terrain.length; ++i) {
+        const triangle = terrain[i];
         const pathBB = new Path2D();
 
         // TODO: Extract all these conversions somewhere
