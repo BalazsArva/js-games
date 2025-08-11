@@ -48,6 +48,11 @@ export interface LineCircleIntersectionResult {
   };
 }
 
+export interface QuadraticEquationSolutionsResult {
+  result1: number;
+  result2: number;
+}
+
 export function findEquationOfLine(line: LineSegment): LineEquationParams {
   const gradient = findLineGradient(line);
 
@@ -71,6 +76,25 @@ export function findLineGradient(line: LineSegment) {
   }
 
   return (line.b.y - line.a.y) / (line.b.x - line.a.x);
+}
+
+export function findQuadraticEquationSolutions(a: number, b: number, c: number): QuadraticEquationSolutionsResult {
+  const termUnderSqrt = (b * b) - (4 * a * c);
+  if (termUnderSqrt < 0) {
+    return {
+      result1: NaN,
+      result2: NaN,
+    };
+  }
+
+  const termUnderSqrtResult = Math.sqrt(termUnderSqrt);
+  const r1 = (-b + termUnderSqrtResult) / (2 * a);
+  const r2 = (-b - termUnderSqrtResult) / (2 * a);
+
+  return {
+    result1: r1,
+    result2: r2,
+  };
 }
 
 // TODO: When returning 'Intersects', need to check if the resulting points fall within the designated segment of the line.
@@ -100,12 +124,22 @@ export function findLineCircleIntersection(line: LineSegment, circle: Circle): L
       };
     } else if (diff < circle.radius || -diff < circle.radius) {
       // intersects 
+      // 'y' values can be found by substituting known values into circle equation which yields:
+      //
+      // x^2 - 2xh + h^2 + y^2 - 2yk + k^2 - r^2 = 0
+      //
+      // where 'y' is the only unknown as we have x at this point. Coefficients for quadratic equation for 'y' are:
+      const quadraticEqParamA = 1;
+      const quadraticEqParamB = -2 * (circle.center.y);
+      const quadraticEqParamC = Math.pow(line.a.x, 2) - (2 * line.a.x * circle.center.x) + Math.pow(circle.center.x, 2) + Math.pow(circle.center.y, 2) - Math.pow(circle.radius, 2);
+
+      const quadraticSolutions = findQuadraticEquationSolutions(quadraticEqParamA, quadraticEqParamB, quadraticEqParamC);
+
       return {
         type: 'Intersects',
         intersection: {
-          // TODO: y is incorrect here! Need to find it from circle eq.
-          p1: { x: circle.center.x + diff, y: circle.center.y - circle.radius },
-          p2: { x: circle.center.x + diff, y: circle.center.y + circle.radius },
+          p1: { x: circle.center.x + diff, y: quadraticSolutions.result1 },
+          p2: { x: circle.center.x + diff, y: quadraticSolutions.result2 },
         },
       }
     } else {
@@ -143,21 +177,20 @@ export function findLineCircleIntersection(line: LineSegment, circle: Circle): L
   const quadraticEqParamB = (-2 * circle.center.x) + (2 * lineEqParams.m * lineEqParams.b) - (2 * lineEqParams.m * circle.center.y);
   const quadraticEqParamC = Math.pow(circle.center.x, 2) + Math.pow(lineEqParams.b, 2) - (2 * lineEqParams.b * circle.center.y) + Math.pow(circle.center.y, 2) - Math.pow(circle.radius, 2);
 
-  const quadraticTermUnderSqrt = quadraticEqParamB * quadraticEqParamB - (4 * quadraticEqParamA * quadraticEqParamC);
-  if (quadraticTermUnderSqrt < 0) {
+  const quadraticEqSolutions = findQuadraticEquationSolutions(quadraticEqParamA, quadraticEqParamB, quadraticEqParamC);
+  if (isNaN(quadraticEqSolutions.result1)) {
     // No solution to the quadratic eq - no intersection
     return { type: 'NoIntersection' };
   }
-  const quadraticTermSqrt = Math.sqrt(quadraticTermUnderSqrt);
-  const quadraticSolutionX1 = (-quadraticEqParamB + quadraticTermSqrt) / (2 * quadraticEqParamA);
-  const quadraticSolutionX2 = (-quadraticEqParamB - quadraticTermSqrt) / (2 * quadraticEqParamA);
+
+  const quadraticSolutionX1 = quadraticEqSolutions.result1;
+  const quadraticSolutionX2 = quadraticEqSolutions.result2;
 
   // y can be found from line equation: y=mx+b
   const y1 = lineEqParams.m * quadraticSolutionX1 + lineEqParams.b;
   const y2 = lineEqParams.m * quadraticSolutionX2 + lineEqParams.b;
 
-  // Also known as X1 === X2
-  if (quadraticTermUnderSqrt === 0) {
+  if (quadraticSolutionX1 === quadraticSolutionX2) {
     return {
       type: 'Touches',
       intersection: {
