@@ -107,17 +107,63 @@ export class Terrain {
   }
 
   public damageTerrainAtPosition(point: Point, radius: number) {
-    // TODO: this ignores neighboring segments when the impact radius should go over to the neighboring segments.
     const terrainSegments = this.getTerrainSegmentsContainingPoint(point);
     const radiusSizedBoundingBoxOfPoint = new BoundingBox(point.x - radius, point.y - radius, 2 * radius, 2 * radius);
 
+    const circle: Circle = { center: point, radius: radius };
+
+    for (let i = 0; i < terrainSegments.length; ++i) {
+      const segment = terrainSegments[i];
+
+      if (!BoundingBoxesIntersect(radiusSizedBoundingBoxOfPoint, segment.boundingBox)) {
+        continue;
+      }
+
+      const splitList: Triangle[] = [];
+
+      splitList.push(...segment.iterateTriangles());
+
+      while (splitList.length) {
+        const triangle = splitList.shift()!;
+
+        const distA = PointDistance(triangle.a, point);
+        const distB = PointDistance(triangle.b, point);
+        const distC = PointDistance(triangle.c, point);
+
+        // Triangle completely covered by impact radius - destroy it entirely
+        if (distA <= radius && distB <= radius && distC <= radius) {
+          segment.removeTriangles([triangle]);
+        } else if (
+          // At least 1 vertex falls within radius - triangle is partially covered by impact radius. This check is
+          // technically redundant as the circle-line intersection would also show this, but this is a much cheaper calculation.
+          distA < radius ||
+          distB < radius ||
+          distC < radius ||
+
+          // When circle perimeter cuts through the triangle's edge
+          findLineCircleIntersection({ a: triangle.a, b: triangle.b }, circle).type === 'Intersects' ||
+          findLineCircleIntersection({ a: triangle.b, b: triangle.c }, circle).type === 'Intersects' ||
+          findLineCircleIntersection({ a: triangle.c, b: triangle.a }, circle).type === 'Intersects') {
+
+          const splitTriangles = triangle.divide();
+          if (splitTriangles.length > 1) {
+            // When =1, divide returned the same, it cannot be divided any further
+            // TODO: Maybe add a way to recompute the bounding box only once for the whole segment
+            segment.removeTriangles([triangle]);
+            segment.addTriangles(splitTriangles);
+
+            splitList.push(...splitTriangles);
+          }
+        }
+      }
+    }
+
+    /*
     for (let i = 0; i < terrainSegments.length; ++i) {
       const segment = terrainSegments[i];
       const trianglesToSplit: Triangle[] = [];
 
-      // TODO: Check if 'r' circle around point intersects or contains the triangle
       for (let triangle of segment.iterateTriangles()) {
-        const circle: Circle = { center: point, radius: radius };
 
         if (
           // Distance to the vertices cover the case when the triangle is entirely covered by the circle (no edge intersection)
@@ -160,6 +206,7 @@ export class Terrain {
         }
       }
     }
+    */
   }
 
   private getTerrainSegmentsContainingPoint(point: Point): TerrainSegment[] {
@@ -169,7 +216,7 @@ export class Terrain {
       const segment = this.terrainSegments[key];
 
       //if (IsPointInBoundingBox(point, segment.boundingBox)) {
-        result.push(segment);
+      result.push(segment);
       //}
     }
 
