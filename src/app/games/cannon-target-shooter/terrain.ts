@@ -1,5 +1,5 @@
 import { DegToRad, PointDistance } from "./maths";
-import { BoundingBox, IsPointInBoundingBox, Point } from "./types";
+import { BoundingBox, BoundingBoxesIntersect, IsPointInBoundingBox, Point } from "./types";
 
 export class TerrainSegment {
   private _boundingBox: BoundingBox;
@@ -108,27 +108,15 @@ export class Terrain {
 
   public damageTerrainAtPosition(point: Point, radius: number) {
     const terrainSegments = this.getTerrainSegmentsContainingPoint(point);
+    const radiusSizedBoundingBoxOfPoint = new BoundingBox(point.x - radius, point.y - radius, 2 * radius, 2 * radius);
 
     for (let i = 0; i < terrainSegments.length; ++i) {
       const segment = terrainSegments[i];
       const trianglesToSplit: Triangle[] = [];
 
-      // TODO: Use radius
-      // TODO: Use actual containment instead of bounding box containment
-      /*
+      // TODO: Check if 'r' circle around point intersects or contains the triangle
       for (let triangle of segment.iterateTriangles()) {
-        if (IsPointInBoundingBox(point, triangle.boundingBox)) {
-          trianglesToSplit.push(triangle);
-        }
-      }
-      */
-      // TODO: This is still not good: using some radius value (e.g. 4) and clicking near the center of a large (initial size)
-      // triangle does not do anything because it is too far away from any vertex
-      for (let triangle of segment.iterateTriangles()) {
-        if (
-          PointDistance(point, triangle.a) < radius ||
-          PointDistance(point, triangle.b) < radius ||
-          PointDistance(point, triangle.c) < radius) {
+        if (BoundingBoxesIntersect(radiusSizedBoundingBoxOfPoint, triangle.boundingBox)) {
           trianglesToSplit.push(triangle);
         }
       }
@@ -168,9 +156,9 @@ export class Terrain {
     for (let key in this.terrainSegments) {
       const segment = this.terrainSegments[key];
 
-      //if (IsPointInBoundingBox(point, segment.boundingBox)) {
-      result.push(segment);
-      //}
+      if (IsPointInBoundingBox(point, segment.boundingBox)) {
+        result.push(segment);
+      }
     }
 
     return result;
