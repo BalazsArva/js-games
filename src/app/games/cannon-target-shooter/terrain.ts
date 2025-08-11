@@ -1,4 +1,4 @@
-import { DegToRad, PointDistance } from "./maths";
+import { Circle, DegToRad, findLineCircleIntersection, PointDistance } from "./maths";
 import { BoundingBox, BoundingBoxesIntersect, IsPointInBoundingBox, Point } from "./types";
 
 export class TerrainSegment {
@@ -107,6 +107,7 @@ export class Terrain {
   }
 
   public damageTerrainAtPosition(point: Point, radius: number) {
+    // TODO: this ignores neighboring segments when the impact radius should go over to the neighboring segments.
     const terrainSegments = this.getTerrainSegmentsContainingPoint(point);
     const radiusSizedBoundingBoxOfPoint = new BoundingBox(point.x - radius, point.y - radius, 2 * radius, 2 * radius);
 
@@ -116,7 +117,18 @@ export class Terrain {
 
       // TODO: Check if 'r' circle around point intersects or contains the triangle
       for (let triangle of segment.iterateTriangles()) {
-        if (BoundingBoxesIntersect(radiusSizedBoundingBoxOfPoint, triangle.boundingBox)) {
+        const circle: Circle = { center: point, radius: radius };
+
+        if (
+          // Distance to the vertices cover the case when the triangle is entirely covered by the circle (no edge intersection)
+          PointDistance(triangle.a, point) < radius ||
+          PointDistance(triangle.b, point) < radius ||
+          PointDistance(triangle.c, point) < radius ||
+
+          // When circle perimeter cuts through the triangle's edge
+          findLineCircleIntersection({ a: triangle.a, b: triangle.b }, circle).type === 'Intersects' ||
+          findLineCircleIntersection({ a: triangle.b, b: triangle.c }, circle).type === 'Intersects' ||
+          findLineCircleIntersection({ a: triangle.c, b: triangle.a }, circle).type === 'Intersects') {
           trianglesToSplit.push(triangle);
         }
       }
@@ -156,9 +168,9 @@ export class Terrain {
     for (let key in this.terrainSegments) {
       const segment = this.terrainSegments[key];
 
-      if (IsPointInBoundingBox(point, segment.boundingBox)) {
+      //if (IsPointInBoundingBox(point, segment.boundingBox)) {
         result.push(segment);
-      }
+      //}
     }
 
     return result;
