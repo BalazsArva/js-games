@@ -166,7 +166,7 @@ export class GameHost {
   renderFrame(fps: number) {
     const zoomFactor = this.zoomFactor();
     const viewport = this.getViewport();
-    const viewportElements = this.game.getViewportElements(viewport);
+    const viewportElements = this.game.getViewportElements(viewport, true);
 
     this.renderer.render(viewport, viewportElements, zoomFactor, fps);
   }

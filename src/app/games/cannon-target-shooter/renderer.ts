@@ -1,5 +1,5 @@
 import { convertLengthInMetersToPixels, Viewport } from "./types";
-import { Triangle } from "./terrain";
+import { Triangle, TerrainSegment } from "./terrain";
 import { CannonBall, ViewportElements } from "./game";
 
 // For debug
@@ -51,6 +51,10 @@ export class Renderer {
       this.paintCannonBall(cannonBall, viewport, ctx, zoomFactor);
     }
 
+    if (viewportElements.segments && viewportElements.segments.length) {
+      this.paintSegmentBoundaries(viewportElements.segments, viewport, ctx, zoomFactor);
+    }
+
     this.paintMinimap(ctx);
     this.paintFps(ctx, fps);
   }
@@ -60,6 +64,27 @@ export class Renderer {
     ctx.strokeStyle = '#000000';
 
     ctx.strokeText(`${fps} FPS`, 10, 20);
+  }
+
+  paintSegmentBoundaries(segments: TerrainSegment[], viewport: Viewport, ctx: CanvasRenderingContext2D, zoomFactor: number) {
+    for (let i = 0; i < segments.length; ++i) {
+      ctx.fillStyle = 'transparent';
+      ctx.strokeStyle = '#ffff00';
+      ctx.lineWidth = 1;
+
+      const segment = segments[i];
+      const path = new Path2D();
+
+      const heightPx = convertLengthInMetersToPixels(segment.boundingBox.height, zoomFactor);
+
+      path.rect(
+        convertLengthInMetersToPixels(segment.boundingBox.bottomLeft.x - viewport.x, zoomFactor),
+        this.canvasHeight - heightPx - convertLengthInMetersToPixels(segment.boundingBox.bottomLeft.y - viewport.y, zoomFactor),
+        convertLengthInMetersToPixels(segment.boundingBox.width, zoomFactor),
+        heightPx);
+
+      ctx.stroke(path);
+    }
   }
 
   paintTerrain(terrain: Triangle[], viewport: Viewport, ctx: CanvasRenderingContext2D, zoomFactor: number) {
