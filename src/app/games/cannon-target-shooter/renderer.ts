@@ -4,12 +4,30 @@ import { CannonBall, ViewportElements } from "./game";
 
 // For debug
 // TODO: Add the logic for segment BB - but we currently don't get the segment
-const renderTriangleBoundingBox = true;
 const renderTerrainSegmentBoundingBox = false;
 
 export class Renderer {
   canvasWidth: number;
   canvasHeight: number;
+
+  private _renderTriangleBoundingBox = false;
+  private _renderTriangleEdges = false;
+
+  public set renderTriangleBoundingBox(v: boolean) {
+    this._renderTriangleBoundingBox = v;
+  }
+
+  public get renderTriangleBoundingBox(): boolean {
+    return this._renderTriangleBoundingBox;
+  }
+
+  public set renderTriangleEdges(v: boolean) {
+    this._renderTriangleEdges = v;
+  }
+
+  public get renderTriangleEdges(): boolean {
+    return this._renderTriangleEdges;
+  }
 
   constructor(private canvas: HTMLCanvasElement) {
     this.canvasWidth = canvas.width;
@@ -45,10 +63,13 @@ export class Renderer {
   }
 
   paintTerrain(terrain: Triangle[], viewport: Viewport, ctx: CanvasRenderingContext2D, zoomFactor: number) {
+    const terrainColor = '#089654ff';
+    const terrainEdgeColor = this.renderTriangleEdges ? '#0e7043ff' : terrainColor;
+
     for (let i = 0; i < terrain.length; ++i) {
-      ctx.fillStyle = '#089654ff';
+      ctx.fillStyle = terrainColor;
+      ctx.strokeStyle = terrainEdgeColor;
       ctx.lineWidth = 1;
-      ctx.strokeStyle = '#0e7043ff';
 
       const triangle = terrain[i];
       const path = new Path2D();
@@ -73,7 +94,7 @@ export class Renderer {
       ctx.stroke(path);
     }
 
-    if (renderTriangleBoundingBox) {
+    if (this.renderTriangleBoundingBox) {
       for (let i = 0; i < terrain.length; ++i) {
         const triangle = terrain[i];
         const pathBB = new Path2D();

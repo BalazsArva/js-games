@@ -1,4 +1,4 @@
-import { Component, ElementRef, viewChild, signal } from '@angular/core';
+import { Component, ElementRef, viewChild, signal, model } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Game } from './game';
 import { GameHost } from './game-host';
@@ -20,13 +20,31 @@ export class CannonTargetShooter {
 
   launchPower = signal<number>(10);
   launchAngle = signal<number>(45);
+  renderBoundingBoxes = model<boolean>(false);
+  renderTriangleEdges = model<boolean>(false);
 
   gameHost: GameHost | undefined;
+  renderer: Renderer | undefined;
+  game: Game | undefined;
+
+  constructor() {
+    this.renderBoundingBoxes.subscribe(val => {
+      if (this.renderer) {
+        this.renderer.renderTriangleBoundingBox = val;
+      }
+    });
+    this.renderTriangleEdges.subscribe(val => {
+      if (this.renderer) {
+        this.renderer.renderTriangleEdges = val;
+      }
+    });
+  }
 
   ngAfterViewInit() {
-    this.gameHost = new GameHost(
-      new Game(Terrain.createRandom(1200, 600)),
-      new Renderer(this.cannonBallCanvas()?.nativeElement!));
+    this.game = new Game(Terrain.createRandom(1200, 600));
+    this.renderer = new Renderer(this.cannonBallCanvas()?.nativeElement!);
+    this.gameHost = new GameHost(this.game, this.renderer);
+
     this.gameHost.startup();
   }
 
