@@ -68,7 +68,7 @@ export class Triangle {
   }
 
   divide(): Triangle[] {
-    const minimumPointDistance = 3;
+    const minimumPointDistance = 2;
 
     // TODO: Not sure whether to use || or &&. A triangle may have a very long and a very short edge, what to do then?
     if (
@@ -194,7 +194,7 @@ export class Terrain {
 
   public static createRandom(mapWidthMeters: number, mapHeightMeters: number): Terrain {
     // TODO: Maybe configurable?
-    const triangleEdgeLength = 20;
+    const triangleEdgeLength = 30;
     const result = new Terrain(mapWidthMeters, mapHeightMeters);
     const triangleHeight = Math.sin(DegToRad(60)) * triangleEdgeLength;
 
