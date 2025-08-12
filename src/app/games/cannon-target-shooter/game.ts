@@ -7,7 +7,9 @@ import {
   Viewport,
   IsBoundingBoxInViewport
 } from "./types";
-import { Terrain, TerrainSegment, Triangle } from "./terrain";
+import { Terrain } from "./terrain";
+import { TerrainSegment } from "./terrain-segment";
+import { Triangle } from "./triangle";
 
 function addVectors(a: Vector, b: Vector) {
   return { x: a.x + b.x, y: a.y + b.y };

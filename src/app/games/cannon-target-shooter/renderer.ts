@@ -1,10 +1,7 @@
 import { convertLengthInMetersToPixels, Viewport } from "./types";
-import { Triangle, TerrainSegment } from "./terrain";
+import { TerrainSegment } from "./terrain-segment";
+import { Triangle } from "./triangle";
 import { CannonBall, ViewportElements } from "./game";
-
-// For debug
-// TODO: Add the logic for segment BB - but we currently don't get the segment
-const renderTerrainSegmentBoundingBox = false;
 
 export class Renderer {
   canvasWidth: number;

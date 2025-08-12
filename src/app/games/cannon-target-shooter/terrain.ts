@@ -1,104 +1,7 @@
 import { Circle, DegToRad, findLineCircleIntersection, PointDistance } from "./maths";
+import { TerrainSegment } from "./terrain-segment";
+import { Triangle } from "./triangle";
 import { BoundingBox, BoundingBoxesIntersect, IsPointInBoundingBox, Point } from "./types";
-
-export class TerrainSegment {
-  private _boundingBox: BoundingBox;
-  private triangles: Triangle[] = [];
-
-  constructor() {
-    this._boundingBox = this.computeBoundingBox();
-  }
-
-  * iterateTriangles(): Generator<Triangle> {
-    for (let i = 0; i < this.triangles.length; ++i) {
-      yield this.triangles[i];
-    }
-  }
-
-  addTriangles(triangles: Triangle[]) {
-    this.triangles.push(...triangles);
-    this._boundingBox = this.computeBoundingBox();
-  }
-
-  removeTriangles(triangles: Triangle[]) {
-    // TODO: Need to do this faster, maybe generate a triangle id and use a lookup
-    this.triangles = this.triangles.filter(t => !triangles.includes(t));
-    this._boundingBox = this.computeBoundingBox();
-  }
-
-  get boundingBox(): BoundingBox {
-    return this._boundingBox;
-  }
-
-  private computeBoundingBox() {
-    if (this.triangles.length === 0) {
-      return new BoundingBox(0, 0, 0, 0);
-    }
-
-    const boundingBoxPoints = this.triangles.flatMap(t => [t.boundingBox.bottomLeft, t.boundingBox.bottomRight, t.boundingBox.topLeft, t.boundingBox.topRight]);
-    const boundingBoxPointXCoords = boundingBoxPoints.map(p => p.x).sort((a, b) => a - b);
-    const boundingBoxPointYCoords = boundingBoxPoints.map(p => p.y).sort((a, b) => a - b);
-
-    const minX = boundingBoxPointXCoords[0];
-    const maxX = boundingBoxPointXCoords[boundingBoxPointXCoords.length - 1];
-    const minY = boundingBoxPointYCoords[0];
-    const maxY = boundingBoxPointYCoords[boundingBoxPointYCoords.length - 1];
-
-    return new BoundingBox(minX, minY, maxX - minX, maxY - minY);
-  }
-}
-
-export class Triangle {
-  private _boundingBox: BoundingBox;
-
-  constructor(public a: Point, public b: Point, public c: Point) {
-    const xCoords = [a.x, b.x, c.x].sort((v1, v2) => v1 - v2);
-    const yCoords = [a.y, b.y, c.y].sort((v1, v2) => v1 - v2);
-
-    const minX = xCoords[0];
-    const minY = yCoords[0];
-    const w = xCoords[xCoords.length - 1] - minX;
-    const h = yCoords[yCoords.length - 1] - minY;
-
-    this._boundingBox = new BoundingBox(minX, minY, w, h);
-  }
-
-  get boundingBox(): BoundingBox {
-    return this._boundingBox;
-  }
-
-  divide(): Triangle[] {
-    const minimumPointDistance = 2;
-
-    // TODO: Not sure whether to use || or &&. A triangle may have a very long and a very short edge, what to do then?
-    if (
-      PointDistance(this.a, this.b) <= minimumPointDistance ||
-      PointDistance(this.a, this.c) <= minimumPointDistance ||
-      PointDistance(this.b, this.c) <= minimumPointDistance) {
-      return [this];
-    }
-
-    // Halving points' coords
-    const abX = (this.a.x + this.b.x) / 2;
-    const abY = (this.a.y + this.b.y) / 2;
-    const acX = (this.a.x + this.c.x) / 2;
-    const acY = (this.a.y + this.c.y) / 2;
-    const bcX = (this.b.x + this.c.x) / 2;
-    const bcY = (this.b.y + this.c.y) / 2;
-
-    // Halving points
-    const ab: Point = { x: abX, y: abY };
-    const ac: Point = { x: acX, y: acY };
-    const bc: Point = { x: bcX, y: bcY };
-
-    return [
-      new Triangle(this.a, ab, ac),
-      new Triangle(this.b, ab, bc),
-      new Triangle(this.c, ac, bc),
-      new Triangle(ac, ab, bc),
-    ];
-  }
-}
 
 export class Terrain {
   // TODO: The 'string' key is not really ideal due to the fact that triangle splitting may cause some new triangles to fall outside of the original bounding box.
@@ -180,7 +83,7 @@ export class Terrain {
   }
 
   private getOrCreateTerrainSegmentForPosition(point: Point) {
-    const segmentSize = 10;
+    const segmentSize = 100;
 
     const segmentIndexX = Math.floor(point.x / segmentSize);
     const segmentIndexY = Math.floor(point.y / segmentSize);
