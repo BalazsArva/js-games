@@ -25,7 +25,7 @@ export class CannonTargetShooter {
 
   ngAfterViewInit() {
     this.gameHost = new GameHost(
-      new Game(Terrain.createRandom(400, 200)),
+      new Game(Terrain.createRandom(1200, 600)),
       new Renderer(this.cannonBallCanvas()?.nativeElement!));
     this.gameHost.startup();
   }

@@ -8,7 +8,6 @@ import {
   IsBoundingBoxInViewport
 } from "./types";
 import { Terrain, Triangle } from "./terrain";
-import { DegToRad, RadToDeg } from "./maths";
 
 function addVectors(a: Vector, b: Vector) {
   return { x: a.x + b.x, y: a.y + b.y };
