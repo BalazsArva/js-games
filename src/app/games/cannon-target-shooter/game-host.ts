@@ -14,10 +14,8 @@ export class GameHost {
 
   zoomSetting = {
     issuedAt: 0,
-    /*value: 0.05,
-    previousValue: 0.05,*/
-    value: 1,
-    previousValue: 1,
+    value: 0.05,
+    previousValue: 0.05,
   };
 
   constructor(

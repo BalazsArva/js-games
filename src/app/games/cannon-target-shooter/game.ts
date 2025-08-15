@@ -114,7 +114,8 @@ export class Game {
         // intersection before updating the position instead.
 
         // TODO: Maybe instead of radius, pass the energy to the destruction function. Each triangle destroyed should consume some amount of energy?
-        console.log(`COLLISION - E=${cannonBall.kineticEnergy}`)
+        // TODO: Also maybe of one big circular impact crater (which is unrealistic that it destroys e.g. terrain overhangs above the impact point), the ball could keep
+        // moving digging deeper and deeper blasting out smaller and smaller craters until it runs out of energy.
         this.cannonBalls.splice(i, 1);
         this.terrain.damageTerrainAtPosition({ x: newPositionVector.x, y: newPositionVector.y }, 1.55 * (cannonBall.kineticEnergy / (10000000)))
       }
