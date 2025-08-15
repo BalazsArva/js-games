@@ -109,6 +109,9 @@ export class Game {
         newPositionVector.y > (this.terrain.mapHeightMeters + 2 * cannonBall.radius)) {
         this.cannonBalls.splice(i, 1);
       } else if (this.terrain.pointCollidesWithTerrain({ x: newPositionVector.x, y: newPositionVector.y })) {
+        // TODO: It is not sufficient to check new position point for collision. It can and does happen that when the ball goes fast,
+        // it goes right through tiny terrain triangles because the previous and new positions 'skip' through them. Need to check the movement vector for triangle
+        // intersection before updating the position instead.
 
         // TODO: Maybe instead of radius, pass the energy to the destruction function. Each triangle destroyed should consume some amount of energy?
         console.log(`COLLISION - E=${cannonBall.kineticEnergy}`)
