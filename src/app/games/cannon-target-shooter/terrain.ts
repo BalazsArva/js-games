@@ -1,4 +1,4 @@
-import { Circle, DegToRad, findLineCircleIntersection, PointDistance } from "./maths";
+import { Circle, DegToRad, findLineCircleIntersection, isPointWithinTriangle, PointDistance } from "./maths";
 import { TerrainSegment } from "./terrain-segment";
 import { Triangle } from "./triangle";
 import { BoundingBox, BoundingBoxesIntersect, IsPointInBoundingBox, Point } from "./types";
@@ -17,8 +17,9 @@ export class Terrain {
 
       if (IsPointInBoundingBox(point, segment.boundingBox)) {
         for (let triangle of segment.iterateTriangles()) {
-          if (IsPointInBoundingBox(point, triangle.boundingBox)) {
-            // TODO: Use actual collision not just bounding box contains check
+          // Bounding box check here is to save on more expensive computations since even if there is a collision,
+          // it will only be for a tiny fraction of all the triangles in the segment.
+          if (IsPointInBoundingBox(point, triangle.boundingBox) && isPointWithinTriangle(point, triangle)) {
             return true;
           }
         }

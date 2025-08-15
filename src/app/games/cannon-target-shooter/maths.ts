@@ -246,7 +246,20 @@ export function findLineCircleIntersection(line: LineSegment, circle: Circle): L
   }
 }
 
-export function findLineIntersection(line1: LineSegment, line2: LineSegment): LineIntersectionResult {
+function isPointInLineBoundingBox(line: LineSegment, point: Point): boolean {
+  const lineMinX = Math.min(line.a.x, line.b.x);
+  const lineMaxX = Math.max(line.a.x, line.b.x);
+
+  const lineMinY = Math.min(line.a.y, line.b.y);
+  const lineMaxY = Math.max(line.a.y, line.b.y);
+
+  return (
+    point.x >= lineMinX &&
+    point.x <= lineMaxX &&
+    point.y >= lineMinY &&
+    point.y <= lineMaxY);
+}
+export function findLineIntersection(line1: LineSegment, line2: LineSegment, checkIntersectionIsInSegmentBoundaries: boolean): LineIntersectionResult {
   const equationOfLine1 = findEquationOfLine(line1);
   const equationOfLine2 = findEquationOfLine(line2);
 
@@ -254,7 +267,6 @@ export function findLineIntersection(line1: LineSegment, line2: LineSegment): Li
     // Same gradient, meaning they are parallel. They only intersect if they are the exact same, meaning 'b' is the same.
     // Otherwise they never intersect.
     if (equationOfLine1.b === equationOfLine2.b) {
-      // TODO: 'Everywhere' is only really true for infinite lines.
       return {
         type: 'IntersectEverywhere',
       };
@@ -286,6 +298,13 @@ export function findLineIntersection(line1: LineSegment, line2: LineSegment): Li
     const intersectionX = infiniteLine.a.x;
     const intersectionY = (otherLineEq.m * intersectionX) + otherLineEq.b;
 
+    if (
+      checkIntersectionIsInSegmentBoundaries && (
+        !isPointInLineBoundingBox(line1, { x: intersectionX, y: intersectionY }) ||
+        !isPointInLineBoundingBox(line2, { x: intersectionX, y: intersectionY }))) {
+      return { type: 'NoIntersection' };
+    }
+
     return {
       type: 'IntersectAt',
       intersectAt: {
@@ -306,6 +325,13 @@ export function findLineIntersection(line1: LineSegment, line2: LineSegment): Li
   const intersectionX = (equationOfLine2.b - equationOfLine1.b) / (equationOfLine1.m - equationOfLine2.m);
   const intersectionY = (equationOfLine1.m * intersectionX) + equationOfLine1.b;
 
+  if (
+    checkIntersectionIsInSegmentBoundaries && (
+      !isPointInLineBoundingBox(line1, { x: intersectionX, y: intersectionY }) ||
+      !isPointInLineBoundingBox(line2, { x: intersectionX, y: intersectionY }))) {
+    return { type: 'NoIntersection' };
+  }
+
   return {
     type: 'IntersectAt',
     intersectAt: {
@@ -315,13 +341,18 @@ export function findLineIntersection(line1: LineSegment, line2: LineSegment): Li
   };
 }
 
-// TODO: Finish implementation
-export function isPointWithinTriangle(point: Point, triangle: Triangle) {
-  const verticalLineCrossingPoint: LineSegment = { a: point, b: { x: point.x, y: point.y + 1 } };
-  const horizontalLineCrossingPoint: LineSegment = { a: point, b: { x: point.x + 1, y: point.y } };
+export function isPointWithinTriangle(point: Point, triangle: Triangle): boolean {
+  // TODO: The incoming triangle should have its own BB. Although that does not guarantee that it is the correct one based on the vertices.
+  // Could extract the split function out of the Triangle class and move it to the rest of the 'types'.
+  const triangleXCoords = [triangle.a.x, triangle.b.x, triangle.c.x].sort((a, b) => a - b);
+  const triangleYCoords = [triangle.a.y, triangle.b.y, triangle.c.y].sort((a, b) => a - b);
+  const triangleBoundingBoxW = triangleXCoords[2] - triangleXCoords[0];
+  const triangleBoundingBoxH = triangleYCoords[2] - triangleYCoords[0];
 
-  const verticalLineCrossingPointEq = findEquationOfLine(verticalLineCrossingPoint);
-  const horizontalLineCrossingPointEq = findEquationOfLine(horizontalLineCrossingPoint);
+  const lineUpFromPoint: LineSegment = { a: point, b: { x: point.x, y: point.y + triangleBoundingBoxH } };
+  const lineDownFromPoint: LineSegment = { a: point, b: { x: point.x, y: point.y - triangleBoundingBoxH } };
+  const lineLeftFromPoint: LineSegment = { a: point, b: { x: point.x - triangleBoundingBoxW, y: point.y } };
+  const lineRightFromPoint: LineSegment = { a: point, b: { x: point.x + triangleBoundingBoxW, y: point.y } };
 
   let existsPolygonEdgeCrossingAbovePoint = false;
   let existsPolygonEdgeCrossingBelowPoint = false;
@@ -334,29 +365,26 @@ export function isPointWithinTriangle(point: Point, triangle: Triangle) {
     { a: triangle.c, b: triangle.a },
   ];
 
-  // TODO: Don't forget the final edge, connecting the last vertex to the first
-  for (let i = 1; i < edges.length; ++i) {
-    const line: LineSegment = { a: edges[i - i].a, b: edges[i].b };
+  // TODO: This will not detect then the point is exactly on a vertex or exactly on an edge. For now it is okay since fractionals make that case quite negligible.
+  for (let i = 0; i < edges.length; ++i) {
+    const edge: LineSegment = edges[i];
 
-    // TODO: Try to optimize this somehow - the line drawn from the point does not change, but this call recomputes the equation all the time
-    const vIntersection = findLineIntersection(verticalLineCrossingPoint, line);
-    if (vIntersection.type === 'IntersectAt') {
-      const intersectAt = vIntersection.intersectAt!;
+    existsPolygonEdgeCrossingAbovePoint = existsPolygonEdgeCrossingAbovePoint || (findLineIntersection(edge, lineUpFromPoint, true).type !== 'NoIntersection');
+    existsPolygonEdgeCrossingBelowPoint = existsPolygonEdgeCrossingBelowPoint || (findLineIntersection(edge, lineDownFromPoint, true).type !== 'NoIntersection');
+    existsPolygonEdgeCrossingLeftToPoint = existsPolygonEdgeCrossingLeftToPoint || (findLineIntersection(edge, lineLeftFromPoint, true).type !== 'NoIntersection');
+    existsPolygonEdgeCrossingRightToPoint = existsPolygonEdgeCrossingRightToPoint || (findLineIntersection(edge, lineRightFromPoint, true).type !== 'NoIntersection');
 
-      // 1. Check that intersection point lies within the bounding box of the line
-      // 2. If so, see where it lies in relation to the point - up or down, set corresponding flag
+    if (
+      existsPolygonEdgeCrossingAbovePoint &&
+      existsPolygonEdgeCrossingBelowPoint &&
+      existsPolygonEdgeCrossingLeftToPoint &&
+      existsPolygonEdgeCrossingRightToPoint
+    ) {
+      return true;
     }
-
-    const hIntersection = findLineIntersection(horizontalLineCrossingPoint, line);
-    if (hIntersection.type === 'IntersectAt') {
-      const intersectAt = hIntersection.intersectAt!;
-
-      // 1. Check that intersection point lies within the bounding box of the line
-      // 2. If so, see where it lies in relation to the point - left or right, set corresponding flag
-    }
-
-    //3. If all flags are true, terminate with true
   }
+
+  return false;
 }
 
 // Test cases:
