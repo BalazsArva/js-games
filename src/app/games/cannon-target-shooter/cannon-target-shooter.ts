@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Game } from './game';
 import { GameHost } from './game-host';
 import { Renderer } from './renderer';
-import { ZoomOutCommand, ZoomInCommand, DragScreenCommand, ShootCannonBallCommand, DropCannonBallCommand, CheckCollisionCommand, DestroyTerrainCommand } from './types';
+import { ZoomOutCommand, ZoomInCommand, DragScreenCommand, ShootCannonBallCommand, DropCannonBallCommand, DestroyTerrainCommand } from './types';
 import { Terrain } from './terrain';
 
 @Component({

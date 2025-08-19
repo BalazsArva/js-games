@@ -1,8 +1,11 @@
 import { PointDistance } from "./maths";
 import { BoundingBox, Point } from "./types";
 
+let triangleId = 1;
+
 export class Triangle {
   private _boundingBox: BoundingBox;
+  private _id: string;
 
   constructor(public a: Point, public b: Point, public c: Point) {
     const xCoords = [a.x, b.x, c.x].sort((v1, v2) => v1 - v2);
@@ -14,10 +17,16 @@ export class Triangle {
     const h = yCoords[yCoords.length - 1] - minY;
 
     this._boundingBox = new BoundingBox(minX, minY, w, h);
+    this._id = triangleId.toString();
+    ++triangleId;
   }
 
   get boundingBox(): BoundingBox {
     return this._boundingBox;
+  }
+
+  get id(): string {
+    return this._id;
   }
 
   divide(): Triangle[] {

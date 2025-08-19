@@ -4,11 +4,9 @@ import {
   GravityAcceleration,
   IronDensity,
   Vector,
-  Viewport,
-  IsBoundingBoxInViewport
+  Region
 } from "./types";
 import { Terrain } from "./terrain";
-import { TerrainSegment } from "./terrain-segment";
 import { Triangle } from "./triangle";
 
 function addVectors(a: Vector, b: Vector) {
@@ -58,7 +56,6 @@ export class CannonBall {
 export interface ViewportElements {
   cannonBalls: CannonBall[];
   terrain: Triangle[];
-  segments?: TerrainSegment[];
 }
 
 export class Game {
@@ -122,41 +119,10 @@ export class Game {
     }
   }
 
-  getViewportElements(viewport: Viewport, includeSegmentDebugView: boolean): ViewportElements {
-    const triangles: Triangle[] = [];
-    const segments: TerrainSegment[] = [];
+  getViewportElements(viewport: Region, includeSegmentDebugView: boolean): ViewportElements {
+    const triangles = this.terrain.terrainObjectHierarchy.getObjectsInRegion(viewport);
 
-    for (let key in this.terrain.terrainSegments) {
-      const segment = this.terrain.terrainSegments[key];
-      const segmentBoundingBox = segment.boundingBox;
-
-
-      const isBoundingBoxInViewportResult = IsBoundingBoxInViewport(segmentBoundingBox, viewport);
-
-      if (isBoundingBoxInViewportResult === 'CompletelyInViewport') {
-        if (includeSegmentDebugView) {
-          segments.push(segment);
-        }
-
-        for (let triangle of segment.iterateTriangles()) {
-          triangles.push(triangle);
-        }
-      } else if (isBoundingBoxInViewportResult === 'PartiallyInViewport') {
-        if (includeSegmentDebugView) {
-          segments.push(segment);
-        }
-
-        for (let triangle of segment.iterateTriangles()) {
-          if (IsBoundingBoxInViewport(triangle.boundingBox, viewport)) {
-            triangles.push(triangle);
-          }
-        }
-      }
-    }
-
-    // TODO: Improve fitlering - it only returns elements whose center are in the VP, but clipping will occur
     return {
-      segments: includeSegmentDebugView ? segments : undefined,
       terrain: triangles,
       cannonBalls: this.cannonBalls.filter(cb =>
       (cb.position.x >= viewport.x && cb.position.x <= (viewport.x + viewport.width) &&

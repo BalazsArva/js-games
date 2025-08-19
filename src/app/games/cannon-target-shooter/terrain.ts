@@ -1,99 +1,72 @@
-import { Circle, DegToRad, findLineCircleIntersection, isPointWithinTriangle, PointDistance } from "./maths";
-import { TerrainSegment } from "./terrain-segment";
+import { Circle, DegToRad, findLineCircleIntersection, PointDistance } from "./maths";
+import { TerrainObjectHierarchy } from "./terrain-object-hierarchy";
 import { Triangle } from "./triangle";
-import { BoundingBox, BoundingBoxesIntersect, IsPointInBoundingBox, Point } from "./types";
+import { Point } from "./types";
 
 export class Terrain {
-  // TODO: The 'string' key is not really ideal due to the fact that triangle splitting may cause some new triangles to fall outside of the original bounding box.
-  // Maybe it would be better to just remove these keys and use a hierarchical segmentation instead (segments may themselves contain smaller segments)
-  terrainSegments: Record<string, TerrainSegment> = {};
+  terrainObjectHierarchy: TerrainObjectHierarchy;
 
   constructor(public mapWidthMeters: number, public mapHeightMeters: number) {
+    // TODO: Find ideal number of rows,cols and levels (maybe based on map- and viewport size)
+    this.terrainObjectHierarchy = new TerrainObjectHierarchy(4, 4, 0, 2,
+      {
+        x: 0,
+        y: 0,
+        width: mapWidthMeters,
+        height: mapHeightMeters
+      });
   }
 
   public pointCollidesWithTerrain(point: Point): boolean {
-    for (let key in this.terrainSegments) {
-      const segment = this.terrainSegments[key];
-
-      if (IsPointInBoundingBox(point, segment.boundingBox)) {
-        for (let triangle of segment.iterateTriangles()) {
-          // Bounding box check here is to save on more expensive computations since even if there is a collision,
-          // it will only be for a tiny fraction of all the triangles in the segment.
-          if (IsPointInBoundingBox(point, triangle.boundingBox) && isPointWithinTriangle(point, triangle)) {
-            return true;
-          }
-        }
-      }
-    }
-
-    return false;
+    return this.terrainObjectHierarchy.pointCollidesWithTerrain(point);
   }
 
   public damageTerrainAtPosition(point: Point, radius: number) {
-    const radiusSizedBoundingBoxOfPoint = new BoundingBox(point.x - radius, point.y - radius, 2 * radius, 2 * radius);
-
     const circle: Circle = { center: point, radius: radius };
 
-    for (let key in this.terrainSegments) {
-      const segment = this.terrainSegments[key];
+    // TODO: Consolidate boundingbox and region
+    const splitList = this.terrainObjectHierarchy.getObjectsInRegion({
+      x: point.x - radius,
+      y: point.y - radius,
+      width: 2 * radius,
+      height: 2 * radius,
+    });
 
-      if (!BoundingBoxesIntersect(radiusSizedBoundingBoxOfPoint, segment.boundingBox)) {
-        continue;
-      }
+    while (splitList.length) {
+      const triangle = splitList.shift()!;
 
-      const splitList: Triangle[] = [];
+      const distA = PointDistance(triangle.a, point);
+      const distB = PointDistance(triangle.b, point);
+      const distC = PointDistance(triangle.c, point);
 
-      splitList.push(...segment.iterateTriangles());
+      // Triangle completely covered by impact radius - destroy it entirely
+      if (distA <= radius && distB <= radius && distC <= radius) {
+        // TODO: Do more efficiently?
+        this.terrainObjectHierarchy.removeTriangles([triangle]);
+      } else if (
+        // At least 1 vertex falls within radius - triangle is partially covered by impact radius. This check is
+        // technically redundant as the circle-line intersection would also show this, but this is a much cheaper calculation.
+        distA < radius ||
+        distB < radius ||
+        distC < radius ||
 
-      while (splitList.length) {
-        const triangle = splitList.shift()!;
+        // When circle perimeter cuts through the triangle's edge
+        findLineCircleIntersection({ a: triangle.a, b: triangle.b }, circle).type === 'Intersects' ||
+        findLineCircleIntersection({ a: triangle.b, b: triangle.c }, circle).type === 'Intersects' ||
+        findLineCircleIntersection({ a: triangle.c, b: triangle.a }, circle).type === 'Intersects') {
 
-        const distA = PointDistance(triangle.a, point);
-        const distB = PointDistance(triangle.b, point);
-        const distC = PointDistance(triangle.c, point);
+        // (currently segment is determined by the bounding box center point, which is different for newer smaller triangles)
+        const splitTriangles = triangle.divide();
+        if (splitTriangles.length > 1) {
+          // When =1, divide returned the same, it cannot be divided any further
+          // TODO: Maybe add a way to recompute the bounding box only once for the whole segment
+          this.terrainObjectHierarchy.removeTriangles([triangle]);
+          this.terrainObjectHierarchy.addTriangles(splitTriangles);
 
-        // Triangle completely covered by impact radius - destroy it entirely
-        if (distA <= radius && distB <= radius && distC <= radius) {
-          segment.removeTriangles([triangle]);
-        } else if (
-          // At least 1 vertex falls within radius - triangle is partially covered by impact radius. This check is
-          // technically redundant as the circle-line intersection would also show this, but this is a much cheaper calculation.
-          distA < radius ||
-          distB < radius ||
-          distC < radius ||
-
-          // When circle perimeter cuts through the triangle's edge
-          findLineCircleIntersection({ a: triangle.a, b: triangle.b }, circle).type === 'Intersects' ||
-          findLineCircleIntersection({ a: triangle.b, b: triangle.c }, circle).type === 'Intersects' ||
-          findLineCircleIntersection({ a: triangle.c, b: triangle.a }, circle).type === 'Intersects') {
-
-          // TODO: Divided triangles may not fall to the same segment as their origins
-          // (currently segment is determined by the bounding box center point, which is different for newer smaller triangles)
-          const splitTriangles = triangle.divide();
-          if (splitTriangles.length > 1) {
-            // When =1, divide returned the same, it cannot be divided any further
-            // TODO: Maybe add a way to recompute the bounding box only once for the whole segment
-            segment.removeTriangles([triangle]);
-            segment.addTriangles(splitTriangles);
-
-            splitList.push(...splitTriangles);
-          }
+          splitList.push(...splitTriangles);
         }
       }
     }
-  }
-
-  private getOrCreateTerrainSegmentForPosition(point: Point) {
-    const segmentSize = 100;
-
-    const segmentIndexX = Math.floor(point.x / segmentSize);
-    const segmentIndexY = Math.floor(point.y / segmentSize);
-
-    const key = `[${segmentIndexX};${segmentIndexY}]`;
-
-    this.terrainSegments[key] = this.terrainSegments[key] || new TerrainSegment();
-
-    return this.terrainSegments[key];
   }
 
   public static createRandom(mapWidthMeters: number, mapHeightMeters: number): Terrain {
@@ -104,6 +77,7 @@ export class Terrain {
 
     // TODO: Later this shouldn't be a static value
     const rowCount = 8;
+    const triangles: Triangle[] = [];
 
     for (let i = 0; i < mapWidthMeters / triangleEdgeLength; ++i) {
       for (let j = 0; j < rowCount; ++j) {
@@ -120,20 +94,12 @@ export class Terrain {
           { x: i * triangleEdgeLength, y: rowBottom },
           { x: (i * triangleEdgeLength) + (triangleEdgeLength / 2), y: rowTop });
 
-        const segment1 = result.getOrCreateTerrainSegmentForPosition(triangle1.boundingBox.middle);
-        const segment2 = result.getOrCreateTerrainSegmentForPosition(triangle2.boundingBox.middle);
-
-        // TODO: May be able to simplify this by generating all triangles upfront, then categorizing them into their respective segments.
-        // Then only 1 compute of bounding box per segment happens.
-        if (segment1 === segment2) {
-          segment1.addTriangles([triangle1, triangle2]);
-        }
-        else {
-          segment1.addTriangles([triangle1]);
-          segment2.addTriangles([triangle2]);
-        }
+        triangles.push(triangle1, triangle2);
       }
     }
+
+    // Add from a buffer array so that bounding boxes are only computed when everything is ready
+    result.terrainObjectHierarchy.addTriangles(triangles);
 
     return result;
   }

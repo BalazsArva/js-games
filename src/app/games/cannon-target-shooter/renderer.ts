@@ -1,4 +1,4 @@
-import { convertLengthInMetersToPixels, Viewport } from "./types";
+import { convertLengthInMetersToPixels, Region } from "./types";
 import { TerrainSegment } from "./terrain-segment";
 import { Triangle } from "./triangle";
 import { CannonBall, ViewportElements } from "./game";
@@ -31,7 +31,7 @@ export class Renderer {
     this.canvasHeight = canvas.height;
   }
 
-  public render(viewport: Viewport, viewportElements: ViewportElements, zoomFactor: number, fps: number) {
+  public render(viewport: Region, viewportElements: ViewportElements, zoomFactor: number, fps: number) {
     const ctx = this.canvas.getContext('2d');
     if (!ctx) {
       console.error('No context found for drawing');
@@ -48,9 +48,11 @@ export class Renderer {
       this.paintCannonBall(cannonBall, viewport, ctx, zoomFactor);
     }
 
+    /*
     if (viewportElements.segments && viewportElements.segments.length) {
       this.paintSegmentBoundaries(viewportElements.segments, viewport, ctx, zoomFactor);
     }
+    */
 
     this.paintMinimap(ctx);
     this.paintFps(ctx, fps);
@@ -63,7 +65,8 @@ export class Renderer {
     ctx.strokeText(`${fps} FPS`, 10, 20);
   }
 
-  paintSegmentBoundaries(segments: TerrainSegment[], viewport: Viewport, ctx: CanvasRenderingContext2D, zoomFactor: number) {
+  // TODO: Re-introduce this
+  paintSegmentBoundaries(segments: TerrainSegment[], viewport: Region, ctx: CanvasRenderingContext2D, zoomFactor: number) {
     for (let i = 0; i < segments.length; ++i) {
       ctx.fillStyle = 'transparent';
       ctx.strokeStyle = '#ffff00';
@@ -84,7 +87,7 @@ export class Renderer {
     }
   }
 
-  paintTerrain(terrain: Triangle[], viewport: Viewport, ctx: CanvasRenderingContext2D, zoomFactor: number) {
+  paintTerrain(terrain: Triangle[], viewport: Region, ctx: CanvasRenderingContext2D, zoomFactor: number) {
     const terrainColor = '#089654ff';
     const terrainEdgeColor = this.renderTriangleEdges ? '#0e7043ff' : terrainColor;
 
@@ -137,7 +140,7 @@ export class Renderer {
     }
   }
 
-  paintCannonBall(cannonBall: CannonBall, viewport: Viewport, ctx: CanvasRenderingContext2D, zoomFactor: number) {
+  paintCannonBall(cannonBall: CannonBall, viewport: Region, ctx: CanvasRenderingContext2D, zoomFactor: number) {
     const ballRadius = convertLengthInMetersToPixels(cannonBall.radius, zoomFactor);
     const xRelativeToViewport = cannonBall.position.x - viewport.x;
     const yRelativeToViewport = cannonBall.position.y - viewport.y;

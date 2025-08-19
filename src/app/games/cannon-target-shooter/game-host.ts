@@ -1,6 +1,17 @@
 import { Game } from "./game";
 import { Renderer } from "./renderer";
-import { BallRadiusInMeter, CheckCollisionCommand, Command, convertPixelsToMeters, DestroyTerrainCommand, DragScreenCommand, DropCannonBallCommand, ShootCannonBallCommand, Viewport, ZoomInCommand, ZoomOutCommand } from "./types";
+import {
+  BallRadiusInMeter,
+  Command,
+  convertPixelsToMeters,
+  DestroyTerrainCommand,
+  DragScreenCommand,
+  DropCannonBallCommand,
+  ShootCannonBallCommand,
+  Region,
+  ZoomInCommand,
+  ZoomOutCommand
+} from "./types";
 
 export class GameHost {
   zoomFactorStep = 0.01;
@@ -46,9 +57,6 @@ export class GameHost {
     else if (command instanceof DropCannonBallCommand) {
       this.dropCannonBall(<DropCannonBallCommand>command);
     }
-    else if (command instanceof CheckCollisionCommand) {
-      this.checkCollision(<CheckCollisionCommand>command);
-    }
     else if (command instanceof DestroyTerrainCommand) {
       const height = convertPixelsToMeters(this.renderer.canvasHeight, this.zoomFactor());
       const vp = this.getViewport();
@@ -93,14 +101,11 @@ export class GameHost {
     const vX = Math.cos(angleRad) * command.launchPower;
     const vY = Math.sin(angleRad) * command.launchPower;
 
-    this.game.spawnNewCannonBall({ x: 1, y: 100 }, { x: vX, y: vY }, BallRadiusInMeter);
+    this.game.spawnNewCannonBall({ x: 1, y: 300 }, { x: vX, y: vY }, BallRadiusInMeter);
   }
 
   private dropCannonBall(command: DropCannonBallCommand) {
     this.game.spawnNewCannonBall({ x: command.x, y: command.y }, { x: 0, y: 0 }, BallRadiusInMeter);
-  }
-
-  private checkCollision(command: CheckCollisionCommand) {
   }
 
   private dragScreen(dragScreenCommand: DragScreenCommand) {
@@ -169,12 +174,11 @@ export class GameHost {
     this.renderer.render(viewport, viewportElements, zoomFactor, fps);
   }
 
-  getViewport(): Viewport {
+  getViewport(): Region {
     const zoomFactor = this.zoomFactor();
     return {
       x: this.viewportBottomLeft.x,
       y: this.viewportBottomLeft.y,
-      // TODO: Review this
       height: convertPixelsToMeters(this.renderer.canvasHeight, zoomFactor),
       width: convertPixelsToMeters(this.renderer.canvasWidth, zoomFactor),
     };

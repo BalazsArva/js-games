@@ -3,7 +3,7 @@ export interface Vector {
   y: number;
 }
 
-export interface Viewport {
+export interface Region {
   x: number;
   y: number;
   width: number;
@@ -43,28 +43,28 @@ export class BoundingBox {
   get height(): number { return this._height };
 }
 
-export type IsBoundingBoxInViewportResult = 'NotInViewport' | 'PartiallyInViewport' | 'CompletelyInViewport';
-export function IsBoundingBoxInViewport(boundingBox: BoundingBox, viewport: Viewport): IsBoundingBoxInViewportResult {
-  const val1 = IsPointInViewport(boundingBox.bottomLeft, viewport);
-  const val2 = IsPointInViewport(boundingBox.bottomRight, viewport);
-  const val3 = IsPointInViewport(boundingBox.topLeft, viewport);
-  const val4 = IsPointInViewport(boundingBox.topRight, viewport);
+export type IsBoundingBoxInRegionResult = 'NotInRegion' | 'PartiallyInRegion' | 'CompletelyInRegion';
+export function IsBoundingBoxInRegion(boundingBox: BoundingBox, region: Region): IsBoundingBoxInRegionResult {
+  const val1 = IsPointInRegion(boundingBox.bottomLeft, region);
+  const val2 = IsPointInRegion(boundingBox.bottomRight, region);
+  const val3 = IsPointInRegion(boundingBox.topLeft, region);
+  const val4 = IsPointInRegion(boundingBox.topRight, region);
 
   if (val1 && val2 && val3 && val4) {
-    return 'CompletelyInViewport';
+    return 'CompletelyInRegion';
   }
 
   if (val1 || val2 || val3 || val4) {
-    return 'PartiallyInViewport';
+    return 'PartiallyInRegion';
   }
 
-  return 'NotInViewport';
+  return 'NotInRegion';
 }
 
-export function IsPointInViewport(point: Point, viewport: Viewport): boolean {
+export function IsPointInRegion(point: Point, region: Region): boolean {
   return (
-    point.x >= viewport.x && point.x <= (viewport.x + viewport.width) &&
-    point.y >= viewport.y && point.y <= (viewport.y + viewport.height));
+    point.x >= region.x && point.x <= (region.x + region.width) &&
+    point.y >= region.y && point.y <= (region.y + region.height));
 }
 
 export function IsPointInBoundingBox(point: Point, boundingBox: BoundingBox): boolean {
@@ -98,10 +98,6 @@ export class ZoomInCommand implements Command { }
 export class ZoomOutCommand implements Command { }
 export class DragScreenCommand implements Command {
   constructor(public deltaXPixels: number, public deltaYPixels: number) {
-  }
-}
-export class CheckCollisionCommand implements Command {
-  constructor(public xPixels: number, public yPixels: number) {
   }
 }
 // TODO: Remove later, for experiments only
